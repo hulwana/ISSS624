@@ -50,3 +50,71 @@ As the `pre-schools-location-kml` is in kml format, the syntax for importing the
 ```{r}
 preschool <- st_read("data/geospatial/pre-schools-location-kml.kml")
 ```
+
+## 1.3 Viewing the data frame
+
+In this sub-section, we will retrieve information related to the content of a simple feature data frame.
+
+### 1.3.1 Working with *st_geometry()*
+
+The column in the sf data.frame that contains the geometries is a list, of class `sfc`. We can retrieve the geometry list-column in this case by mpsz\$geom or mpsz\[\[1\]\], but the more general way uses *st_geometry()* as shown in the code chunk below.
+
+```{r}
+st_geometry(mpsz)
+```
+
+However, the *st_geometry()* function only provides basic geospatial information such as the number of features and the geometric type for which in this case it is a multipolygon.
+
+### **1.3.2 Working with *glimpse()***
+
+To get an overview on other non-geospatial data we will use *glimpse()*.
+
+```{r}
+glimpse(mpsz)
+```
+
+From the above output, we have a glimpse of the fields available in the dataset and their respective data type. For example 'OBJECTID' and 'SUBZONE_NO' are both **integer** data type whereas `X_ADDR`, `Y_ADDR`, `SHAPE_L` and `SHAPE_AREA` fields are all in **double-precision values**.
+
+**1.3.3 Working with *head()***
+
+To view the first 5 observations, we can use the function *head()*. By default, it will show the first 6 observations. To view a specific number of observation based on the top of the data table, it can be specified in the function by the code "n=5".
+
+```{r}
+head(mpsz, n = 5)
+```
+
+2 Plotting the Geospatial Data
+
+2.1 Overview plot
+
+To visualize geospatial data, we will use the function *plot()*.
+
+```{r}
+plot(mpsz)
+```
+
+The above plot showcases a multi-plot of all attributes.
+
+2.1.1 Plot Geometry Only
+
+To get the main geometry, we can run the st_geometry() function within the plot() function.
+
+```{r}
+plot(st_geometry(mpsz))
+```
+
+2.1.2 Plot for a Particular Attribute
+
+We can also choose to plot the sf object based on a specific attribute by indicating the attribute into the code chunk as shown:
+
+```{r}
+plot(mpsz["PLN_AREA_N"])
+```
+
+## 
+
+
+
+
+
+
