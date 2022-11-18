@@ -219,7 +219,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#section-1" id="toc-section-1" class="nav-link" data-scroll-target="#section-1"></a>
   <ul class="collapse">
   <li><a href="#importing-attribute-data" id="toc-importing-attribute-data" class="nav-link" data-scroll-target="#importing-attribute-data">2.1 Importing Attribute Data</a></li>
-  <li><a href="#data-preparation" id="toc-data-preparation" class="nav-link" data-scroll-target="#data-preparation">2.2 Data Preparation</a></li>
+  <li><a href="#data-preparation" id="toc-data-preparation" class="nav-link" data-scroll-target="#data-preparation">2.2 Data Preparation</a>
+  <ul class="collapse">
+  <li><a href="#data-wrangling" id="toc-data-wrangling" class="nav-link" data-scroll-target="#data-wrangling">2.2.1 Data Wrangling</a></li>
+  <li><a href="#joining-the-attribute-data-and-geospatial-data" id="toc-joining-the-attribute-data-and-geospatial-data" class="nav-link" data-scroll-target="#joining-the-attribute-data-and-geospatial-data">2.2.2 Joining the attribute data and geospatial data</a></li>
+  </ul></li>
+  <li><a href="#visualising-choropleth" id="toc-visualising-choropleth" class="nav-link" data-scroll-target="#visualising-choropleth">2.3 Visualising Choropleth</a>
+  <ul class="collapse">
+  <li><a href="#plot-using-qtm" id="toc-plot-using-qtm" class="nav-link" data-scroll-target="#plot-using-qtm">2.3.1 Plot using qtm()</a></li>
+  <li><a href="#plot-using-tmaps-elements" id="toc-plot-using-tmaps-elements" class="nav-link" data-scroll-target="#plot-using-tmaps-elements">2.3.2 Plot using tmap’s elements</a></li>
+  </ul></li>
   <li><a href="#section-2" id="toc-section-2" class="nav-link" data-scroll-target="#section-2"></a></li>
   </ul></li>
   </ul>
@@ -813,7 +822,7 @@ Projected CRS: SVY21 / Singapore TM
 </section>
 <section id="section-1" class="level1">
 <h1></h1>
-<p>2 Chloropleth Mapping</p>
+<p>2 Choropleth Mapping</p>
 <p>Choropleth mapping involves the symbolisation of enumeration units, such as countries, provinces, states, counties or census units, using area patterns or graduated colors. For example, a social scientist may need to use a choropleth map to portray the spatial distribution of aged population of Singapore by Master Plan 2014 Subzone Boundary.</p>
 <section id="importing-attribute-data" class="level2">
 <h2 class="anchored" data-anchor-id="importing-attribute-data">2.1 Importing Attribute Data</h2>
@@ -843,7 +852,8 @@ dbl (2): Pop, Time
 <li><p>TOTAL: all age group, and</p></li>
 <li><p>DEPENDENCY: the ratio between young and aged against economy active group</p></li>
 </ul>
-<p>2.2.1 Data Wrangling</p>
+<section id="data-wrangling" class="level3">
+<h3 class="anchored" data-anchor-id="data-wrangling">2.2.1 Data Wrangling</h3>
 <p>The following data wrangling and transformation functions will be used:</p>
 <ul>
 <li><p><em>pivot_wider()</em> of <strong>tidyr</strong> package, and</p></li>
@@ -873,7 +883,9 @@ dbl (2): Pop, Time
 `.groups` argument.</code></pre>
 </div>
 </div>
-<p>2.2.2 Joining the attribute data and geospatial data</p>
+</section>
+<section id="joining-the-attribute-data-and-geospatial-data" class="level3">
+<h3 class="anchored" data-anchor-id="joining-the-attribute-data-and-geospatial-data">2.2.2 Joining the attribute data and geospatial data</h3>
 <p>Before we can perform the georelational join, one extra step is required to convert the values in PA and SZ fields to uppercase. This is because the values of PA and SZ fields are made up of upper- and lowercase. On the other, hand the SUBZONE_N and PLN_AREA_N are in uppercase.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>popdata2020 <span class="ot">&lt;-</span> popdata2020 <span class="sc">%&gt;%</span></span>
@@ -896,8 +908,122 @@ dbl (2): Pop, Time
 <li><em>left_join()</em> of <strong>dplyr</strong> package is used with <code>mpsz</code> simple feature data frame as the left data table is to ensure that the output will be a simple features data frame.</li>
 </ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="co">#write_rds(mpsz_pop2020, "data/rds/mpszpop2020.rds")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="co">#write_rds(mpsz_pop2020, "data/rds/mpszpop2020.rds")</span></span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>mpsz_pop2020 <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data/rds/mpszpop2020.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+</section>
+</section>
+<section id="visualising-choropleth" class="level2">
+<h2 class="anchored" data-anchor-id="visualising-choropleth">2.3 Visualising Choropleth</h2>
+<p>Two approaches can be used to prepare thematic map using <em>tmap</em>, they are:</p>
+<ul>
+<li><p>Plotting a thematic map quickly by using <em>qtm()</em>.</p></li>
+<li><p>Plotting highly customisable thematic map by using tmap elements.</p></li>
+</ul>
+<section id="plot-using-qtm" class="level3">
+<h3 class="anchored" data-anchor-id="plot-using-qtm">2.3.1 Plot using qtm()</h3>
+<p>The easiest and quickest to draw a choropleth map using <strong>tmap</strong> is using <em>qtm()</em>. It is concise and provides a good default visualisation in many cases.</p>
+<p>The code chunk below will draw a cartographic standard choropleth map as shown below.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_mode</span>(<span class="st">"plot"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>tmap mode set to plotting</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qtm</span>(mpsz_pop2020, </span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"DEPENDENCY"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Hands-on_Ex1_files/figure-html/unnamed-chunk-35-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Things to learn from the code chunk above:</p>
+<ul>
+<li><p><em>tmap_mode()</em> with "plot" option is used to produce a static map. For interactive mode, "view" option should be used.</p></li>
+<li><p><em>fill</em> argument is used to map the attribute (i.e.&nbsp;DEPENDENCY)</p></li>
+</ul>
+</section>
+<section id="plot-using-tmaps-elements" class="level3">
+<h3 class="anchored" data-anchor-id="plot-using-tmaps-elements">2.3.2 Plot using tmap’s elements</h3>
+<p>Despite its usefulness of drawing a choropleth map quickly and easily, the disadvantge of <em>qtm()</em> is that it makes aesthetics of individual layers harder to control. To draw a high quality cartographic choropleth map as shown in the figure below, <strong>tmap</strong>'s drawing elements should be used.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>, </span>
+<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>          <span class="at">style =</span> <span class="st">"quantile"</span>, </span>
+<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">palette =</span> <span class="st">"Blues"</span>,</span>
+<span id="cb73-5"><a href="#cb73-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">title =</span> <span class="st">"Dependency ratio"</span>) <span class="sc">+</span></span>
+<span id="cb73-6"><a href="#cb73-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_layout</span>(<span class="at">main.title =</span> <span class="st">"Distribution of Dependency Ratio by planning subzone"</span>,</span>
+<span id="cb73-7"><a href="#cb73-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">main.title.position =</span> <span class="st">"center"</span>,</span>
+<span id="cb73-8"><a href="#cb73-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">main.title.size =</span> <span class="fl">1.2</span>,</span>
+<span id="cb73-9"><a href="#cb73-9" aria-hidden="true" tabindex="-1"></a>            <span class="at">legend.height =</span> <span class="fl">0.45</span>, </span>
+<span id="cb73-10"><a href="#cb73-10" aria-hidden="true" tabindex="-1"></a>            <span class="at">legend.width =</span> <span class="fl">0.35</span>,</span>
+<span id="cb73-11"><a href="#cb73-11" aria-hidden="true" tabindex="-1"></a>            <span class="at">frame =</span> <span class="cn">TRUE</span>) <span class="sc">+</span></span>
+<span id="cb73-12"><a href="#cb73-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb73-13"><a href="#cb73-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_compass</span>(<span class="at">type=</span><span class="st">"8star"</span>, <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb73-14"><a href="#cb73-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_scale_bar</span>() <span class="sc">+</span></span>
+<span id="cb73-15"><a href="#cb73-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_grid</span>(<span class="at">alpha =</span><span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb73-16"><a href="#cb73-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_credits</span>(<span class="st">"Source: Planning Sub-zone boundary from Urban Redevelopment Authorithy (URA)</span><span class="sc">\n</span><span class="st"> and Population data from Department of Statistics DOS"</span>, </span>
+<span id="cb73-17"><a href="#cb73-17" aria-hidden="true" tabindex="-1"></a>             <span class="at">position =</span> <span class="fu">c</span>(<span class="st">"left"</span>, <span class="st">"bottom"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Hands-on_Ex1_files/figure-html/unnamed-chunk-36-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<section id="drawing-a-base-map" class="level4">
+<h4 class="anchored" data-anchor-id="drawing-a-base-map">2.3.2.1 Drawing a base map</h4>
+<p>The basic building block of <strong>tmap</strong> is <em>tm_shape()</em> followed by one or more layer elemments such as <em>tm_fill()</em> and <em>tm_polygons()</em>.</p>
+<p>In the code chunk below, <em>tm_shape()</em> is used to define the input data (i.e <em>mpsz_pop2020</em>) and <em>tm_polygons()</em> is used to draw the planning subzone polygons.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020) <span class="sc">+</span></span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Hands-on_Ex1_files/figure-html/unnamed-chunk-37-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="drawing-a-choropleth-map-using-tm_polygons" class="level4">
+<h4 class="anchored" data-anchor-id="drawing-a-choropleth-map-using-tm_polygons">2.3.2.2 Drawing a choropleth map using <em>tm_polygons()</em></h4>
+<p>To draw a choropleth map showing the geographical distribution of a selected variable by planning subzone, we just need to assign the target variable such as <em>Dependency</em> to <em>tm_polygons()</em>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="st">"DEPENDENCY"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Hands-on_Ex1_files/figure-html/unnamed-chunk-38-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Things to learn from <em>tm_polygons()</em>:</p>
+<ul>
+<li><p>The default interval binning used to draw the choropleth map is called "pretty". A detailed discussion of the data classification methods supported by <strong>tmap</strong> will be provided in sub-section 4.3.</p></li>
+<li><p>The default colour scheme used is <code>YlOrRd</code> of ColorBrewer. You will learn more about the color scheme in sub-section 4.4.</p></li>
+<li><p>By default, Missing value will be shaded in grey.</p></li>
+</ul>
+<p>2.3.2.3 Drawing a choropleth map using <em>tm_fill()</em> and **tm_border()**</p>
+<p>Actually, <em>tm_polygons()</em> is a wraper of <em>tm_fill()</em> and <em>tm_border()</em>. <em>tm_fill()</em> shades the polygons by using the default colour scheme and <em>tm_borders()</em> adds the borders of the shapefile onto the choropleth map.</p>
+<p>The code chunk below draws a choropleth map by using <em>tm_fill()</em> alone.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Hands-on_Ex1_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Notice that the planning subzones are shared according to the respective dependecy values</p>
+<p>To add the boundary of the planning subzones, tm_borders will be used as shown in the code chunk below.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>) <span class="sc">+</span></span>
+<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">lwd =</span> <span class="fl">0.1</span>,  <span class="at">alpha =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Hands-on_Ex1_files/figure-html/unnamed-chunk-40-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Notice that light-gray border lines have been added on the choropleth map.</p>
+<p>The <em>alpha</em> argument is used to define transparency number between 0 (totally transparent) and 1 (not transparent). By default, the alpha value of the col is used (normally 1).</p>
+<p>Beside <em>alpha</em> argument, there are three other arguments for <em>tm_borders()</em>, they are:</p>
+<ul>
+<li><p><em>col</em> = border colour,</p></li>
+<li><p><em>lwd</em> = border line width. The default is 1, and</p></li>
+<li><p><em>lty</em> = border line type. The default is "solid".</p></li>
+</ul>
+</section>
+</section>
 </section>
 <section id="section-2" class="level2">
 <h2 class="anchored" data-anchor-id="section-2"></h2>
