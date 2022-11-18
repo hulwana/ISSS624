@@ -83,9 +83,9 @@ To view the first 5 observations, we can use the function *head()*. By default, 
 head(mpsz, n = 5)
 ```
 
-## 2 Plotting the Geospatial Data
+## 1.4 Plotting the Geospatial Data
 
-## 2.1 Overview plot
+### 1.4.1 Overview plot
 
 To visualize geospatial data, we will use the function *plot()*.
 
@@ -95,7 +95,7 @@ plot(mpsz)
 
 The above plot showcases a multi-plot of all attributes.
 
-### 2.1.1 Plot Geometry Only
+### 1.4.2 Plot Geometry Only
 
 To get the main geometry, we can run the st_geometry() function within the plot() function.
 
@@ -103,7 +103,7 @@ To get the main geometry, we can run the st_geometry() function within the plot(
 plot(st_geometry(mpsz))
 ```
 
-### 2.1.2 Plot for a Particular Attribute
+### 1.4.3 Plot for a Particular Attribute
 
 We can also choose to plot the sf object based on a specific attribute by indicating the attribute into the code chunk as shown:
 
@@ -111,13 +111,13 @@ We can also choose to plot the sf object based on a specific attribute by indica
 plot(mpsz["PLN_AREA_N"])
 ```
 
-## 3 Working with Projection
+## 1.5 Working with Projection
 
 Map projection is an important property of a geospatial data. In order to perform geoprocessing using two geospatial data, we need to ensure that both geospatial data are projected using similar coordinate system.
 
 In this section we will perform projection transformation in which a simple feature data frame will be projected from one coordinate system to another coordinate system.
 
-## 3.1 Assigning EPSG code to a simple feature data frame
+### 1.5.1 Assigning EPSG code to a simple feature data frame
 
 One of the common issue that can happen during importing geospatial data into R is that the coordinate system of the source data was either missing (such as due to missing .proj for ESRI shapefile) or wrongly assigned during the importing process.
 
@@ -143,7 +143,7 @@ st_crs(mpsz3414)
 
 The ESPG code has been updated to 3414.
 
-## 3.2 Transforming the projection of preschool from wgs84 to svy21
+### 1.5.2 Transforming the projection of preschool from wgs84 to svy21
 
 In geospatial analytics, it is very common for us to transform the original data from geographic coordinate system to projected coordinate system. This is because geographic coordinate system is not appropriate if the analysis need to use distance or/and area measurements.
 
@@ -169,7 +169,7 @@ st_geometry(preschool3414)
 
 Notice that it is in svy21 projected coordinate system now. Furthermore, if you refer to *Bounding box:*, the values are greater than 0-360 range of decimal degree commonly used by most of the geographic coordinate systems.
 
-## 4 Importing and Converting An Aspatial Data
+## 1.6 Importing and Converting An Aspatial Data
 
 In practice, it is not unusual that we will come across data such as `listing` of Inside Airbnb. We call this kind of data aspatial data. This is because it is not a geospatial data but among the data fields, there are two fields that capture the x- and y-coordinates of the data points.
 
@@ -177,7 +177,7 @@ In this section, you will learn how to import an aspatial data into R environmen
 
 For the purpose of this exercise, the `listings.csv` data downloaded from AirBnb will be used.
 
-## 4.1 Importing the Aspatial Data
+### 1.6.1 Importing the Aspatial Data
 
 Since `listings` data set is in csv file format, we will use [*read_csv()*](https://readr.tidyverse.org/reference/read_delim.html) of **readr** package to import `listing.csv` as shown the code chunk below. The output R object is called `listings` and it is a [tibble data frame](https://r4ds.had.co.nz/tibbles.html).
 
@@ -187,7 +187,8 @@ listings <- read_csv("data/aspatial/listings.csv")
 
 The output reveals that `listing` tibble data frame consists of 4252 rows and 16 columns. Two useful fields we are going to use in the next phase are `latitude` and `longitude`. Note that they are in decimal degree format. As a best guess, we will assume that the data is in **wgs84** Geographic Coordinate System.
 
-4.2 Creating a simple feature data frame from an aspatial data frame
+### 1.6.2 Creating a simple feature data frame from an aspatial data frame
+
 The code chunk below converts `listing` data frame into a simple feature data frame by using [*st_as_sf()*](https://r-spatial.github.io/sf/reference/st_as_sf.html) of **sf** packages
 
 ```{r}
@@ -213,13 +214,13 @@ glimpse(listings_sf)
 
 Table above shows the content of `listing_sf`. Notice that a new column called `geometry` has been added into the data frame. On the other hand, the `longitude` and `latitude` columns have been dropped from the data frame.
 
-## 5 Geoprocessing with sf package
+## 1.7 Geoprocessing with sf package
 
 Besides providing functions to handling (i.e. importing, exporting, assigning projection, transforming projection etc) geospatial data, **sf** package also offers a wide range of geoprocessing (also known as GIS analysis) functions.
 
 In this section, you will learn how to perform two commonly used geoprocessing functions, namely [buffering](https://www.gislounge.com/buffers-in-gis/) and point in polygon count.
 
-## 5.1 Buffering
+### 1.7.1 Buffering
 
 The scenario:
 
@@ -246,7 +247,7 @@ Lastly, sum() of Base R will be used to derive the total land involved
 sum(buffer_cycling$AREA)
 ```
 
-## 5.2 Point-in-polygon count
+### 1.7.2 Point-in-polygon count
 
 The scenario:
 
@@ -287,11 +288,11 @@ mpsz3414 <- mpsz3414 %>%
   mutate(`PreSch Density` = `PreSch Count`/Area * 1000000)
 ```
 
-## 6 Exploratory Data Analysis
+## 1.8 Exploratory Data Analysis
 
 In practice, many geospatial analytics start with Exploratory Data Analysis. In this section, you will learn how to use appropriate [ggplot2](https://ggplot2.tidyverse.org/) functions to create functional and yet truthful statistical graphs for EDA purposes.
 
-## 6.1 Histogram to View Overall Distribution for Numeric Fields
+### 1.8.1 Histogram to View Overall Distribution for Numeric Fields
 
 Firstly, we will plot a histogram to reveal the distribution of `PreSch Density`. Conventionally, *hist()* of R Graphics will be used as shown in the code chunk below.
 
@@ -315,7 +316,8 @@ ggplot(data=mpsz3414,
       y = "Frequency")
 ```
 
-6.2 Scatterplot to see the relationship between 2 continuous data
+### 
+1.8.2 Scatterplot to see the relationship between 2 continuous data
 
 The solution:
 
