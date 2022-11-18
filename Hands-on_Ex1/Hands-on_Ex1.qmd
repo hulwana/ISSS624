@@ -4,7 +4,7 @@ author: "Hulwana"
 editor: visual
 ---
 
-## 1 Overview
+# 1 Geospatial Data Wrangling
 
 In this hands-on exercise, I learn how to import and wrangle geospatial data using appropriate R packages.
 
@@ -16,8 +16,10 @@ The code chunk below install and load the following packages into R environment.
 
 -   [**tidyverse**](https://www.tidyverse.org/) : for data preparation such as importing, wrangling and visualizing data
 
+-   [**tmap**](https://cran.r-project.org/web/packages/tmap/): for creating thematic maps
+
 ```{r}
-pacman::p_load(sf, tidyverse)
+pacman::p_load(sf, tmap, tidyverse)
 ```
 
 ## 1.2 Importing Geospatial Data
@@ -327,6 +329,83 @@ ggplot(data=mpsz3414,
   geom_point() +
   labs(x = "Pre-school density (per km sq)",
       y = "Pre-school count")
+```
+
+# 
+2 Chloropleth Mapping
+
+Choropleth mapping involves the symbolisation of enumeration units, such as countries, provinces, states, counties or census units, using area patterns or graduated colors. For example, a social scientist may need to use a choropleth map to portray the spatial distribution of aged population of Singapore by Master Plan 2014 Subzone Boundary.
+
+## 2.1 Importing Attribute Data
+
+Next, we will import *respopagsex2000to2018.csv* file into RStudio and save the file into an R dataframe called *popagsex*.
+
+The task will be performed by using *read_csv()* function of **readr** package as shown in the code chunk below.
+
+```{r}
+popdata <- read_csv("data/aspatial/respopagesextod2011to2020.csv")
+```
+
+## 2.2 Data Preparation 
+
+Before a thematic map can be prepared, you are required to prepare a data table with year 2020 values. The data table should include the variables PA, SZ, YOUNG, ECONOMY ACTIVE, AGED, TOTAL, DEPENDENCY.
+
+-   YOUNG: age group 0 to 4 until age groyup 20 to 24,
+
+-   ECONOMY ACTIVE: age group 25-29 until age group 60-64,
+
+-   AGED: age group 65 and above,
+
+-   TOTAL: all age group, and
+
+-   DEPENDENCY: the ratio between young and aged against economy active group
+
+2.2.1 Data Wrangling
+
+The following data wrangling and transformation functions will be used:
+
+-   *pivot_wider()* of **tidyr** package, and
+
+-   *mutate()*, *filter()*, *group_by()* and *select()* of **dplyr** package
+
+```{r}
+popdata2020 <- popdata %>%
+  filter(Time == 2020) %>%
+  group_by(PA, SZ, AG) %>%
+  summarise(`POP` = sum(`Pop`)) %>%
+  ungroup()%>%
+  pivot_wider(names_from=AG, 
+              values_from=POP) %>%
+  mutate(YOUNG = rowSums(.[3:6])
+         +rowSums(.[12])) %>%
+mutate(`ECONOMY ACTIVE` = rowSums(.[7:11])+
+rowSums(.[13:15]))%>%
+mutate(`AGED`=rowSums(.[16:21])) %>%
+mutate(`TOTAL`=rowSums(.[3:21])) %>%  
+mutate(`DEPENDENCY` = (`YOUNG` + `AGED`)
+/`ECONOMY ACTIVE`) %>%
+  select(`PA`, `SZ`, `YOUNG`, 
+       `ECONOMY ACTIVE`, `AGED`, 
+       `TOTAL`, `DEPENDENCY`)
+```
+
+2.2.2 Joining the attribute data and geospatial data
+
+Before we can perform the georelational join, one extra step is required to convert the values in PA and SZ fields to uppercase. This is because the values of PA and SZ fields are made up of upper- and lowercase. On the other, hand the SUBZONE_N and PLN_AREA_N are in uppercase.
+
+```{r}
+popdata2020 <- popdata2020 %>%
+  mutate_at(.vars = vars(PA, SZ), 
+          .funs = funs(toupper)) %>%
+  filter(`ECONOMY ACTIVE` > 0)
+```
+
+Thing to learn from the code chunk above:
+
+-   *left_join()* of **dplyr** package is used with `mpsz` simple feature data frame as the left data table is to ensure that the output will be a simple features data frame.
+
+```{r}
+#write_rds(mpsz_pop2020, "data/rds/mpszpop2020.rds")
 ```
 
 ## 
