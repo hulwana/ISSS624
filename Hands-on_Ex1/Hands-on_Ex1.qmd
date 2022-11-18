@@ -4,22 +4,49 @@ author: "Hulwana"
 editor: visual
 ---
 
-## Overview
+## 1 Overview
 
 In this hands-on exercise, I learn how to import and wrangle geospatial data using appropriate R packages.
 
-## Getting Started
+## 1.1 Getting Started
 
-The code chunk below install and load [sf](https://r-spatial.github.io/sf/) and [tidyverse](https://www.tidyverse.org/) packages into R environment.
+The code chunk below install and load the following packages into R environment.
+
+-   [**sf**](https://r-spatial.github.io/sf/) : for importing, managing and processing geospatial data
+
+-   [**tidyverse**](https://www.tidyverse.org/) : for data preparation such as importing, wrangling and visualizing data
 
 ```{r}
 pacman::p_load(sf, tidyverse)
 ```
 
-## Importing Geospatial Data
+## 1.2 Importing Geospatial Data
 
-### Importing polygon feature data
+Unlike general data saved in excel or csv, geospatial data has to be read by the *st_read()* function of the **sf** package to capture the polygon feature. An example of importing geospatial data is as shown below.
+
+### 1.2.1 Importing polygon feature data in shapefile format
 
 ```{r}
 mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
+```
+
+The above message indicates that the geospatial data consists of 323 multipolygon features and 15 fields.
+
+### 1.2.2 Importing polyline feature data in shapefile form
+
+The code chunk below uses *st_read()* function of **sf** package to import `CyclingPath` shapefile into R as line feature data frame.
+
+```{r}
+cyclingpath <- st_read(dsn = "data/geospatial", 
+                         layer = "CyclingPath")
+```
+
+The above message reveals that there are a total of 1625 Linestring features and 2 fields in 'CyclingPath' and it is in svy21 projected coordinates system too.
+
+### 1.2.3 Importing GIS data in kml format
+
+As the `pre-schools-location-kml` is in kml format, the syntax for importing the data differs slightly.
+
+```{r}
+preschool <- st_read("data/geospatial/pre-schools-location-kml.kml")
 ```
