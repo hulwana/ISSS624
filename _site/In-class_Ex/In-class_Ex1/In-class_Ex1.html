@@ -192,6 +192,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#importing-gis-data-in-kml-format" id="toc-importing-gis-data-in-kml-format" class="nav-link" data-scroll-target="#importing-gis-data-in-kml-format">Importing GIS data in kml format</a></li>
   <li><a href="#importing-and-transforming-into-projected-coordinates-system" id="toc-importing-and-transforming-into-projected-coordinates-system" class="nav-link" data-scroll-target="#importing-and-transforming-into-projected-coordinates-system">Importing and transforming into projected coordinates system</a></li>
   </ul></li>
+  <li><a href="#part-2" id="toc-part-2" class="nav-link" data-scroll-target="#part-2">PART 2</a>
+  <ul class="collapse">
+  <li><a href="#import-hunan-geospatial-data" id="toc-import-hunan-geospatial-data" class="nav-link" data-scroll-target="#import-hunan-geospatial-data">Import Hunan geospatial data</a></li>
+  <li><a href="#importing-attribute-data-in-csv" id="toc-importing-attribute-data-in-csv" class="nav-link" data-scroll-target="#importing-attribute-data-in-csv">Importing attribute data in csv</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -296,6 +301,41 @@ Dimension:     XYZ
 Bounding box:  xmin: 103.6824 ymin: 1.248403 xmax: 103.9897 ymax: 1.462134
 z_range:       zmin: 0 zmax: 0
 Geodetic CRS:  WGS 84</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="part-2" class="level2">
+<h2 class="anchored" data-anchor-id="part-2">PART 2</h2>
+<section id="import-hunan-geospatial-data" class="level3">
+<h3 class="anchored" data-anchor-id="import-hunan-geospatial-data">Import Hunan geospatial data</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>hunan_sf <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial2"</span>, <span class="at">layer =</span> <span class="st">"Hunan"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reading layer `Hunan' from data source 
+  `C:\hulwana\ISSS624\In-class_Ex\In-class_Ex1\data\geospatial2' 
+  using driver `ESRI Shapefile'
+Simple feature collection with 88 features and 7 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812
+Geodetic CRS:  WGS 84</code></pre>
+</div>
+</div>
+</section>
+<section id="importing-attribute-data-in-csv" class="level3">
+<h3 class="anchored" data-anchor-id="importing-attribute-data-in-csv">Importing attribute data in csv</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/aspatial2/Hunan_2012.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 88 Columns: 29
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (2): County, City
+dbl (27): avg_wage, deposite, FAI, Gov_Rev, Gov_Exp, GDP, GDPPC, GIO, Loan, ...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 </div>
 </div>
 
