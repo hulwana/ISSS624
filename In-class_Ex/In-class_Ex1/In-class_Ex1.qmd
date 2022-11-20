@@ -3,11 +3,11 @@ title: "In-class Exercise 1"
 editor: visual
 ---
 
-## Overview
+## 1 Overview
 
 For this In-class Exercise 1, we will import and prepare geospatial data using R.
 
-## Getting Started
+## 1.1 Getting Started
 
 The code chunk below will install and load tidyverse and sf packages.
 
@@ -21,9 +21,9 @@ for (p in packages){
 }
 ```
 
-## Importing Geospatial Data
+## 1.2 Importing Geospatial Data
 
-### Importing polygon features
+### 1.2.1 Importing polygon features
 
 This code chunk will import ESRI shapefile into R. SVY21 is a Singapore projection system and the units is in metres. We also need to indicate the layer in the directory.
 
@@ -31,7 +31,7 @@ This code chunk will import ESRI shapefile into R. SVY21 is a Singapore projecti
 #mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
 ```
 
-### Importing polyline feature data in shapefile form
+### 1.2.2 Importing polyline feature data in shapefile form
 
 The code chunk below uses *st_read()* function of **sf** package to import `CyclingPath` shapefile into R as line feature data frame. We need the projected coordinated system as we want to calculate the distance. The projected crs reflect the earth with different country having different coordinated systems.
 
@@ -40,7 +40,7 @@ The code chunk below uses *st_read()* function of **sf** package to import `Cycl
 #                         layer = "CyclingPath")
 ```
 
-### Importing GIS data in kml format
+### 1.2.3 Importing GIS data in kml format
 
 As the `pre-schools-location-kml` is in kml format, the syntax for importing the data differs slightly.
 
@@ -57,16 +57,51 @@ As the above data is having a geodetic CRS of WGS 84 which is not efficient for 
 #  st_transform(crs = 3414)
 ```
 
-## PART 2
+## PART 2: Spatial Weights and Applications
 
-### Import Hunan geospatial data
+## 1.3 Import Data
 
-```{r}
-hunan_sf <- st_read(dsn = "data/geospatial2", layer = "Hunan")
-```
+### 1.3.1 Import Hunan geospatial data
 
-### Importing attribute data in csv
+The below extracted data source consists mainly of geospatial information for the various areas in Hunan.
 
 ```{r}
-hunan <- read_csv("data/aspatial2/Hunan_2012.csv")
+hunan <- st_read(dsn = "data/geospatial2", layer = "Hunan")
 ```
+
+### 1.3.2 Importing attribute data in csv
+
+The below imported data contains data of demographic and finances data such as average wage, government expenses and revenue as well as population size for each areas in Hunan.
+
+```{r}
+hunan2012 <- read_csv("data/aspatial2/Hunan_2012.csv")
+```
+
+### 1.3.3 Performing relational join
+
+To combine the geospatial dataset and attribute data of Hunan for further visualization and analysis, we will first need to join them based on a common key. As 'County' is the only key present in both datasets it will be joined based on this field.
+
+```{r}
+hunan <- left_join(hunan, hunan2012)
+```
+
+## 1.4 Visualizing Regional Development Indicator
+
+We will create 2 geo visualization, the first being the mapping of the different areas in Hunan (left diagram) and the second being the gdp density of the different areas in Hunan.
+```{r}
+basemap <- tm_shape(hunan) + 
+  tm_polygons() +
+  tm_text("NAME_3", size = 0.5)
+
+gdppc <- qtm(hunan, "GDPPC")
+tmap_arrange(basemap, gdppc, asp = 1, ncol =2)
+```
+
+```{r}
+hunan_60000 <- hunan %>% filter(GDPPC>60000) %>% select(NAME_3, GDPPC)
+hunan_60000
+```
+
+
+We observe that areas Liuyang, Ningxiang, Wangcheng,  Zixing, Lengshuijiang and Changsha have GDPPC of 60,000 and above.
+
