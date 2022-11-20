@@ -12,7 +12,13 @@ For this In-class Exercise 1, we will import and prepare geospatial data using R
 The code chunk below will install and load tidyverse and sf packages.
 
 ```{r}
-pacman::p_load(sf, tidyverse)
+packages = c('sf', 'spdep', 'tmap', 'tidyverse')
+for (p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+  }
+  library(p,character.only = T)
+}
 ```
 
 ## Importing Geospatial Data
@@ -22,7 +28,7 @@ pacman::p_load(sf, tidyverse)
 This code chunk will import ESRI shapefile into R. SVY21 is a Singapore projection system and the units is in metres. We also need to indicate the layer in the directory.
 
 ```{r}
-mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
+#mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
 ```
 
 ### Importing polyline feature data in shapefile form
@@ -30,8 +36,8 @@ mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
 The code chunk below uses *st_read()* function of **sf** package to import `CyclingPath` shapefile into R as line feature data frame. We need the projected coordinated system as we want to calculate the distance. The projected crs reflect the earth with different country having different coordinated systems.
 
 ```{r}
-cyclingpath <- st_read(dsn = "data/geospatial", 
-                         layer = "CyclingPath")
+#cyclingpath <- st_read(dsn = "data/geospatial", 
+#                         layer = "CyclingPath")
 ```
 
 ### Importing GIS data in kml format
@@ -39,7 +45,7 @@ cyclingpath <- st_read(dsn = "data/geospatial",
 As the `pre-schools-location-kml` is in kml format, the syntax for importing the data differs slightly.
 
 ```{r}
-preschool <- st_read("data/geospatial/pre-schools-location-kml.kml")
+#preschool <- st_read("data/geospatial/pre-schools-location-kml.kml")
 ```
 
 As the above data is having a geodetic CRS of WGS 84 which is not efficient for geospatial analysis and therefore needs to be transformed into Singapore system of 3414.
@@ -47,8 +53,8 @@ As the above data is having a geodetic CRS of WGS 84 which is not efficient for 
 ### Importing and transforming into projected coordinates system
 
 ```{r}
-preschool <- st_read("data/geospatial/pre-schools-location-kml.kml") %>%
-  st_transform(crs = 3414)
+#preschool <- st_read("data/geospatial/pre-schools-location-kml.kml") %>%
+#  st_transform(crs = 3414)
 ```
 
 ## PART 2
