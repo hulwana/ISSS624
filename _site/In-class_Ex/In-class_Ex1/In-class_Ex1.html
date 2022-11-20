@@ -200,6 +200,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#performing-relational-join" id="toc-performing-relational-join" class="nav-link" data-scroll-target="#performing-relational-join">1.3.3 Performing relational join</a></li>
   </ul></li>
   <li><a href="#visualizing-regional-development-indicator" id="toc-visualizing-regional-development-indicator" class="nav-link" data-scroll-target="#visualizing-regional-development-indicator">1.4 Visualizing Regional Development Indicator</a></li>
+  <li><a href="#computing-continuity-spatial-weight" id="toc-computing-continuity-spatial-weight" class="nav-link" data-scroll-target="#computing-continuity-spatial-weight">1.5 Computing Continuity Spatial Weight</a>
+  <ul class="collapse">
+  <li><a href="#computing-queen-continuity-based-neigbours" id="toc-computing-queen-continuity-based-neigbours" class="nav-link" data-scroll-target="#computing-queen-continuity-based-neigbours">1.5.1 Computing (QUEEN) continuity based neigbours</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -391,8 +395,34 @@ Geodetic CRS:  WGS 84
 </div>
 </div>
 <p>We observe that areas Liuyang, Ningxiang, Wangcheng, Zixing, Lengshuijiang and Changsha have GDPPC of 60,000 and above.</p>
+</section>
+<section id="computing-continuity-spatial-weight" class="level2">
+<h2 class="anchored" data-anchor-id="computing-continuity-spatial-weight">1.5 Computing Continuity Spatial Weight</h2>
+<section id="computing-queen-continuity-based-neigbours" class="level3">
+<h3 class="anchored" data-anchor-id="computing-queen-continuity-based-neigbours">1.5.1 Computing (QUEEN) continuity based neigbours</h3>
+<p>To compute Queen continuity weight matrix, we will use the <a href="https://r-spatial.github.io/spdep/reference/poly2nb.html"><em>poly2nb()</em></a> of <a href="https://r-spatial.github.io/spdep/"><strong>spdep</strong></a> package.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>wm_q <span class="ot">&lt;-</span> <span class="fu">poly2nb</span>(hunan, <span class="at">queen=</span><span class="cn">TRUE</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(wm_q)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Neighbour list object:
+Number of regions: 88 
+Number of nonzero links: 448 
+Percentage nonzero weights: 5.785124 
+Average number of links: 5.090909 
+Link number distribution:
+
+ 1  2  3  4  5  6  7  8  9 11 
+ 2  2 12 16 24 14 11  4  2  1 
+2 least connected regions:
+30 65 with 1 link
+1 most connected region:
+85 with 11 links</code></pre>
+</div>
+</div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

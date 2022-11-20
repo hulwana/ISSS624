@@ -236,5 +236,12 @@
     "title": "In-class Exercise 1",
     "section": "1.4 Visualizing Regional Development Indicator",
     "text": "1.4 Visualizing Regional Development Indicator\nWe will create 2 geo visualization, the first being the mapping of the different areas in Hunan (left diagram) and the second being the gdp density of the different areas in Hunan.\n\nbasemap <- tm_shape(hunan) + \n  tm_polygons() +\n  tm_text(\"NAME_3\", size = 0.5)\n\ngdppc <- qtm(hunan, \"GDPPC\")\ntmap_arrange(basemap, gdppc, asp = 1, ncol =2)\n\n\n\n\n\nhunan_60000 <- hunan %>% filter(GDPPC>60000) %>% select(NAME_3, GDPPC)\nhunan_60000\n\nSimple feature collection with 6 features and 2 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 111.3138 ymin: 25.57076 xmax: 114.2544 ymax: 28.66025\nGeodetic CRS:  WGS 84\n         NAME_3 GDPPC                       geometry\n1       Liuyang 63118 POLYGON ((113.9905 28.5682,...\n2     Ningxiang 62202 POLYGON ((112.7181 28.38299...\n3     Wangcheng 70666 POLYGON ((112.7914 28.52688...\n4        Zixing 65706 POLYGON ((113.7311 26.16259...\n5 Lengshuijiang 64257 POLYGON ((111.5307 27.81472...\n6      Changsha 88656 POLYGON ((112.9421 28.03722...\n\n\nWe observe that areas Liuyang, Ningxiang, Wangcheng, Zixing, Lengshuijiang and Changsha have GDPPC of 60,000 and above."
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#computing-continuity-spatial-weight",
+    "href": "In-class_Ex/In-class_Ex1/In-class_Ex1.html#computing-continuity-spatial-weight",
+    "title": "In-class Exercise 1",
+    "section": "1.5 Computing Continuity Spatial Weight",
+    "text": "1.5 Computing Continuity Spatial Weight\n\n1.5.1 Computing (QUEEN) continuity based neigbours\nTo compute Queen continuity weight matrix, we will use the poly2nb() of spdep package.\n\nwm_q <- poly2nb(hunan, queen=TRUE)\nsummary(wm_q)\n\nNeighbour list object:\nNumber of regions: 88 \nNumber of nonzero links: 448 \nPercentage nonzero weights: 5.785124 \nAverage number of links: 5.090909 \nLink number distribution:\n\n 1  2  3  4  5  6  7  8  9 11 \n 2  2 12 16 24 14 11  4  2  1 \n2 least connected regions:\n30 65 with 1 link\n1 most connected region:\n85 with 11 links"
   }
 ]

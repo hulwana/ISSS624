@@ -88,6 +88,7 @@ hunan <- left_join(hunan, hunan2012)
 ## 1.4 Visualizing Regional Development Indicator
 
 We will create 2 geo visualization, the first being the mapping of the different areas in Hunan (left diagram) and the second being the gdp density of the different areas in Hunan.
+
 ```{r}
 basemap <- tm_shape(hunan) + 
   tm_polygons() +
@@ -102,6 +103,15 @@ hunan_60000 <- hunan %>% filter(GDPPC>60000) %>% select(NAME_3, GDPPC)
 hunan_60000
 ```
 
+We observe that areas Liuyang, Ningxiang, Wangcheng, Zixing, Lengshuijiang and Changsha have GDPPC of 60,000 and above.
 
-We observe that areas Liuyang, Ningxiang, Wangcheng,  Zixing, Lengshuijiang and Changsha have GDPPC of 60,000 and above.
+## 1.5 Computing Continuity Spatial Weight
 
+### 1.5.1 Computing (QUEEN) continuity based neigbours
+
+To compute Queen continuity weight matrix, we will use the [*poly2nb()*](https://r-spatial.github.io/spdep/reference/poly2nb.html) of [**spdep**](https://r-spatial.github.io/spdep/) package.
+
+```{r}
+wm_q <- poly2nb(hunan, queen=TRUE)
+summary(wm_q)
+```
