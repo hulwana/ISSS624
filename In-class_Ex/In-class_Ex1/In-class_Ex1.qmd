@@ -126,7 +126,7 @@ wm_q[[1]]
 
 Polygon 1 has 5 neighbors. The numbers represent the polygon IDs as stored in hunan SpatialPolygonsDataFrame class.
 
-We can retrive the county name of Polygon ID=1 by using the code chunk below:
+We can retrieve the county name of Polygon ID=1 by using the code chunk below:
 
 ```{r}
 hunan$County[1]
@@ -150,8 +150,104 @@ nb1
 
 The printed output above shows that the GDPPC of the five nearest neighbours based on Queen\'s method are 20981, 34592, 24473, 21311 and 22879 respectively.
 
-You can display the complete weight matrix by using *str()*.
+We can display the complete weight matrix by using *str()*.
 
 ```{r}
 str(wm_q)
 ```
+
+### 1.5.2 Creating Rook continuity based neighbours
+
+To compute Rook continuity weight matrix, we run the code chunk below;
+
+```{r}
+wm_r <- poly2nb(hunan, queen = FALSE)
+summary(wm_r)
+```
+
+Based on Rook continuity, we observe similar results in which areas 30 and 65 are both areas with the least neighbours whereas area 85 has the most neighbours.
+
+### 1.5.3 Visualizing continuity weights
+
+A connectivity graph takes a point and displays a line to each neighboring point. We are working with polygons at the moment, so we will need to get points in order to make our connectivity graphs. The most typically method for this will be polygon centroids. We will calculate these in the sf package before moving onto the graphs. Getting Latitude and Longitude of Polygon Centroids
+
+We will need points to associate with each polygon before we can make our connectivity graph. It will be a little more complicated than just running st_centroid on the sf object: us.bound. We need the coordinates in a separate data frame for this to work. To do this we will use a mapping function. The mapping function applies a given function to each element of a vector and returns a vector of the same length. Our input vector will be the geometry column of us.bound. Our function will be st_centroid. We will be using map_dbl variation of map from the purrr package. For more documentation, check out map documentation
+
+To get our longitude values we map the st_centroid function over the geometry column of us.bound and access the longitude value through double bracket notation \[\[\]\] and 1. This allows us to get only the longitude, which is the first value in each centroid.
+
+```{r}
+longitude <- map_dbl(hunan$geometry, ~st_centroid(.x)[[1]])
+```
+
+We do the same for latitude with one key difference. We access the second value per each centroid with \[\[2\]\].
+
+```{r}
+latitude <- map_dbl(hunan$geometry, ~st_centroid(.x)[[2]])
+```
+
+Now that we have latitude and longitude, we use cbind to put longitude and latitude into the same object.
+
+```{r}
+coords <- cbind(longitude, latitude)
+```
+
+We check the first few observations to see if things are formatted correctly by using the head() function.
+
+```{r}
+head(coords)
+```
+
+#### 1.5.3.1 Plotting Queen continuity based neighbours map
+
+Based on the Queen continuity criterion, the link between the areas can be visualised using the following code:
+
+```{r}
+## to plot the map outline
+plot(hunan$geometry, border = "lightgrey")
+
+
+##  to plot the links between each areas
+plot(wm_q, coords, pch = 19, cex = 0.6, add = TRUE, col = "navyblue")
+```
+
+#### 1.5.3.2 Plotting Rook continuity based neighbours map
+
+Based on the Rook continuity criterion, the link between the areas can be visualised using the following code:
+
+```{r}
+## To plot the map outline
+plot(hunan$geometry, border = "lightgrey")
+plot(wm_r, coords, pch = 19, cex = 0.6, add = TRUE, col = "darkgreen")
+```
+
+#### 1.5.3.3 Plotting both Queen and Rook continuity based neighbours maps
+
+We can arrange the above continuity plots side-by-side using the code below:
+
+```{r}
+## To arrange 2 plots horizontally
+par(mfrow=c(1,2))
+plot(hunan$geometry, border = "lightgrey")
+plot(wm_q, coords, pch = 19, cex = 0.6, add = TRUE, col = "navyblue", main = "Queen Continuity")
+plot(hunan$geometry, border = "lightgrey")
+plot(wm_r, coords, pch = 19, cex = 0.6, add = TRUE, col = "darkgreen", main = "Rook Continuity")
+
+```
+
+## 1.6 Computing distance based neighbours
+
+In this section, we will derive distance-based weight matrices by using [*dnearneigh()*](https://r-spatial.github.io/spdep/reference/dnearneigh.html) of **spdep** package.
+
+The function identifies neighbours of region points by Euclidean distance with a distance band with lower d1= and upper d2= bounds controlled by the bounds= argument. If unprojected coordinates are used and either specified in the coordinates object x or with x as a two column matrix and longlat=TRUE, great circle distances in **km** will be calculated assuming the WGS84 reference ellipsoid.
+
+### 1.6.1 Determine the cut-off distance
+
+Firstly, we need to determine the upper limit for distance band by using the steps below:
+
+-   Return a matrix with the indices of points belonging to the set of the k nearest neighbours of each other by using [*knearneigh()*](https://r-spatial.github.io/spdep/reference/knearneigh.html) of **spdep**.
+
+-   Convert the knn object returned by *knearneigh()* into a neighbours list of class nb with a list of integer vectors containing neighbour region number ids by using [*knn2nb()*](https://r-spatial.github.io/spdep/reference/knn2nb.html).
+
+-   Return the length of neighbour relationship edges by using [*nbdists()*](https://r-spatial.github.io/spdep/reference/nbdists.html) of **spdep**. The function returns in the units of the coordinates if the coordinates are projected, in km otherwise.
+
+-   Remove the list structure of the returned object by using [**unlist()**](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/unlist).
