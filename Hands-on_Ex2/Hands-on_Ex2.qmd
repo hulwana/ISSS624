@@ -552,3 +552,5 @@ The analysis consists of three steps:
 -   Computing Gi statistics
 
 -   Mapping Gi statistics
+
+### 1.11.2 Deriving distance-based weight matrix
