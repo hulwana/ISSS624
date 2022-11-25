@@ -300,3 +300,195 @@ Similar to the previous step, we will print out the analysis report by using the
 ```{r}
 print(GC_corr)
 ```
+
+## 1.8 Cluster and Outlier Analysis
+
+Local Indicators of Spatial Association or LISA are statistics that evaluate the existence of clusters in the spatial arrangement of a given variable. For instance if we are studying cancer rates among census tracts in a given city local clusters in the rates mean that there are areas that have higher or lower rates than is to be expected by chance alone; that is, the values occurring are above or below those of a random distribution in space.
+
+In this section, you will learn how to apply appropriate Local Indicators for Spatial Association (LISA), especially local Moran\'I to detect cluster and/or outlier from GDP per capita 2012 of Hunan Province, PRC.
+
+### 1.8.1 Computing local Moran's I
+
+To compute local Moran\'s I, the [*localmoran()*](https://r-spatial.github.io/spdep/reference/localmoran.html) function of **spdep** will be used. It computes *Ii* values, given a set of *zi* values and a listw object providing neighbour weighting information for the polygon associated with the zi values.
+
+The code chunks below are used to compute local Moran\'s I of *GDPPC2012* at the county level.
+
+```{r}
+fips <- order(hunan$County)
+localMI <- localmoran(hunan$GDPPC, rswm_q)
+head(localMI)
+```
+
+*localmoran()* function returns a matrix of values whose columns are:
+
+-   Ii: the local Moran\'s I statistics
+
+-   E.Ii: the expectation of local moran statistic under the randomisation hypothesis
+
+-   Var.Ii: the variance of local moran statistic under the randomisation hypothesis
+
+-   Z.Ii:the standard deviate of local moran statistic
+
+-   Pr(): the p-value of local moran statistic
+
+The code chunk below list the content of the local Moran matrix derived by using [*printCoefmat()*](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/printCoefmat).
+
+```{r}
+printCoefmat(data.frame(
+  localMI[fips,], 
+  row.names=hunan$County[fips]),
+  check.names=FALSE)
+```
+
+#### 1.8.1.1 Mapping the local Moran's I
+
+Before mapping the local Moran\'s I map, it is wise to append the local Moran\'s I dataframe (i.e. localMI) onto hunan SpatialPolygonDataFrame. The code chunks below can be used to perform the task. The out SpatialPolygonDataFrame is called *hunan.localMI*.
+
+```{r}
+hunan.localMI <- cbind(hunan,localMI) %>%
+  rename(Pr.Ii = Pr.z....E.Ii..)
+```
+
+#### 1.8.1.2 Mapping local Moran's I values
+
+Using choropleth mapping functions of **tmap** package, we can plot the local Moran\'s I values by using the code chinks below.
+
+```{r}
+tm_shape(hunan.localMI) +
+  tm_fill(col = "Ii", 
+          style = "pretty",
+          palette = "RdBu",
+          title = "local moran statistics") +
+  tm_borders(alpha = 0.5)
+```
+
+#### 1.8.1.3 Mapping local Moran's I p-values
+
+The choropleth shows there is evidence for both positive and negative Ii values. However, it is useful to consider the p-values for each of these values, as consider above.
+
+The code chunks below produce a choropleth map of Moran\'s I p-values by using functions of **tmap** package.
+
+```{r}
+tm_shape(hunan.localMI) +
+  tm_fill(col = "Pr.Ii", 
+          breaks=c(-Inf, 0.001, 0.01, 0.05, 0.1, Inf),
+          palette="-Blues", 
+          title = "local Moran's I p-values") +
+  tm_borders(alpha = 0.5)
+```
+
+### 1.8.1.4 Mapping both local Moran's I values and p-values
+
+For effective interpretation, it is better to plot both the local Moran\'s I values map and its corresponding p-values map next to each other.
+
+The code chunk below will be used to create such visualisation.
+
+```{r}
+localMI.map <- tm_shape(hunan.localMI) +
+  tm_fill(col = "Ii", 
+          style = "pretty", 
+          title = "local moran statistics") +
+  tm_borders(alpha = 0.5)
+
+pvalue.map <- tm_shape(hunan.localMI) +
+  tm_fill(col = "Pr.Ii", 
+          breaks=c(-Inf, 0.001, 0.01, 0.05, 0.1, Inf),
+          palette="-Blues", 
+          title = "local Moran's I p-values") +
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(localMI.map, pvalue.map, asp=1, ncol=2)
+```
+
+## 1.10 Creating a LISA Cluster Map
+
+The LISA Cluster Map shows the significant locations color coded by type of spatial autocorrelation. The first step before we can generate the LISA cluster map is to plot the Moran scatterplot.
+
+### 1.10.1 Plotting Moran scatterplot
+
+The Moran scatterplot is an illustration of the relationship between the values of the chosen attribute at each location and the average value of the same attribute at neighboring locations.
+
+The code chunk below plots the Moran scatterplot of GDPPC 2012 by using [*moran.plot()*](https://r-spatial.github.io/spdep/reference/moran.plot.html) of **spdep**.
+
+```{r}
+nci <- moran.plot(hunan$GDPPC, rswm_q,
+                  labels=as.character(hunan$County), 
+                  xlab="GDPPC 2012", 
+                  ylab="Spatially Lag GDPPC 2012")
+```
+
+Notice that the plot is split in 4 quadrants. The top right corner belongs to areas that have high GDPPC and are surrounded by other areas that have the average level of GDPPC. This are the high-high locations in the lesson slide.
+
+### 1.10.2 Plotting Moran scatterplot with standardised variable
+
+First we will use [*scale()*](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/scale) to centers and scales the variable. Here centering is done by subtracting the mean (omitting NAs) the corresponding columns, and scaling is done by dividing the (centered) variable by their standard deviations.
+
+```{r}
+hunan$Z.GDPPC <- scale(hunan$GDPPC) %>% as.vector 
+```
+
+The [*as.vector()*](https://www.rdocumentation.org/packages/pbdDMAT/versions/0.5-1/topics/as.vector) added to the end is to make sure that the data type we get out of this is a vector, that map neatly into out dataframe.
+
+Now, we are ready to plot the Moran scatterplot again by using the code chunk below.
+
+```{r}
+nci2 <- moran.plot(hunan$Z.GDPPC, rswm_q,
+                   labels=as.character(hunan$County),
+                   xlab="z-GDPPC 2012", 
+                   ylab="Spatially Lag z-GDPPC 2012")
+```
+
+### 1.10.3 Preparing LISA map classes
+
+The code chunks below show the steps to prepare a LISA cluster map.
+
+```{r}
+quadrant <- vector(mode="numeric",length=nrow(localMI))
+```
+
+Next, we centers the variable of interest around its mean.
+
+```{r}
+DV <- hunan$GDPPC - mean(hunan$GDPPC)    
+```
+
+This is follow by centering the local Moran\'s around the mean.
+
+```{r}
+C_mI <- localMI[,1] - mean(localMI[,1]) 
+```
+
+Next, we will set a statistical significance level for the local Moran.
+
+```{r}
+signif <- 0.05   
+```
+
+These four command lines define the high-high, low-low, low-high and high-low categories.
+
+```{r}
+quadrant[DV >0 & C_mI>0] <- 4      
+quadrant[DV <0 & C_mI<0] <- 2      
+quadrant[DV <0 & C_mI>0] <- 1
+quadrant[DV >0 & C_mI<0] <- 3
+```
+
+Lastly, places non-significant Moran in the category 0.
+
+```{r}
+quadrant[localMI[,5]>signif] <- 0
+```
+
+In fact, we can combined all the steps into one single code chunk as shown below:
+
+```{r}
+quadrant <- vector(mode="numeric",length=nrow(localMI))
+DV <- hunan$GDPPC - mean(hunan$GDPPC)     
+C_mI <- localMI[,1] - mean(localMI[,1])    
+signif <- 0.05       
+quadrant[DV >0 & C_mI>0] <- 4      
+quadrant[DV <0 & C_mI<0] <- 2      
+quadrant[DV <0 & C_mI>0] <- 1
+quadrant[DV >0 & C_mI<0] <- 3
+quadrant[localMI[,5]>signif] <- 0
+```
