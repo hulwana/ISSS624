@@ -1,0 +1,69 @@
+---
+title: "Hands-on Exercise 2"
+author: "Hulwana"
+editor: visual
+---
+
+## 1.1 Overview
+
+In this hands-on exercise, we will learn how to compute Global and Local Measure of Spatial Autocorrelation (GLSA) by using **spdep** package. The objectives of this exercise is to:
+
+-   import geospatial data using appropriate function(s) of **sf** package,
+
+-   import csv file using appropriate function of **readr** package,
+
+-   perform relational join using appropriate join function of **dplyr** package,
+
+-   compute Global Spatial Autocorrelation (GSA) statistics by using appropriate functions of **spdep** package,
+
+    -   plot Moran scatterplot,
+
+    -   compute and plot spatial correlogram using appropriate function of **spdep** package.
+
+-   compute Local Indicator of Spatial Association (LISA) statistics for detecting clusters and outliers by using appropriate functions **spdep** package;
+
+-   compute Getis-Ord\'s Gi-statistics for detecting hot spot or/and cold spot area by using appropriate functions of **spdep** package; and
+
+-   to visualise the analysis output by using **tmap** package
+
+## 4.2 Getting Started
+
+### 4.2.1 The analytical question
+
+In spatial policy, one of the main development objective of the local govenment and planners is to ensure equal distribution of development in the province. Our task in this study, hence, is to apply appropriate spatial statistical methods to discover if development are evenly distributed geographically. If the answer is **No**, then our next question will be \"is there sign of spatial clustering?\". And, if the answer for this question is **Yes**, then our next question will be \"where are these clusters?\"
+
+In this case study, we are interested to examine the spatial pattern of a selected development indicator (i.e. GDP per capita) of Hunan Provice, People Republic of China.(https://en.wikipedia.org/wiki/Hunan)
+
+### 4.2.2 The study area and data
+
+Two data sets will be used in this hands-on exercise, they are:
+
+-   Hunan province administrative boundary layer at county level. This is a geospatial data set in ESRI shapefile format.
+
+-   **Hunan_2012.csv**: This csv file contains selected Hunan\'s local development indicators in 2012.
+
+### 4.2.3 Setting the analytical tools
+
+Before we get started, we need to ensure that **spdep**, **sf**, **tmap** and **tidyverse** packages of R are currently installed in R.
+
+-   [sf](https://r-spatial.github.io/sf/) is use for importing and handling geospatial data in R,
+
+-   [tidyverse](https://www.tidyverse.org/) is mainly use for wrangling attribute data in R,
+
+-   [spdep](https://r-spatial.github.io/spdep/) will be used to compute spatial weights, global and local spatial autocorrelation statistics, and
+
+-   [tmap](https://r-tmap.github.io/tmap/) will be used to prepare cartographic quality chropleth map.
+
+The code chunk below is used to perform the following tasks:
+
+-   creating a package list containing the necessary R packages,
+
+-   checking if the R packages in the package list have been installed in R,
+
+    -   if they have yet to be installed, RStudio will installed the missing packages,
+
+-   launching the packages into R environment
+
+```{r}
+pacman::p_load(sf, spdep, tmap, tidyverse)
+```
