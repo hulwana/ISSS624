@@ -26,15 +26,15 @@ In this hands-on exercise, we will learn how to compute Global and Local Measure
 
 -   to visualise the analysis output by using **tmap** package
 
-## 4.2 Getting Started
+## 1.2 Getting Started
 
-### 4.2.1 The analytical question
+### 1.2.1 The analytical question
 
 In spatial policy, one of the main development objective of the local govenment and planners is to ensure equal distribution of development in the province. Our task in this study, hence, is to apply appropriate spatial statistical methods to discover if development are evenly distributed geographically. If the answer is **No**, then our next question will be \"is there sign of spatial clustering?\". And, if the answer for this question is **Yes**, then our next question will be \"where are these clusters?\"
 
 In this case study, we are interested to examine the spatial pattern of a selected development indicator (i.e. GDP per capita) of Hunan Provice, People Republic of China.(https://en.wikipedia.org/wiki/Hunan)
 
-### 4.2.2 The study area and data
+### 1.2.2 The study area and data
 
 Two data sets will be used in this hands-on exercise, they are:
 
@@ -42,9 +42,9 @@ Two data sets will be used in this hands-on exercise, they are:
 
 -   **Hunan_2012.csv**: This csv file contains selected Hunan\'s local development indicators in 2012.
 
-### 4.2.3 Setting the analytical tools
+### 1.2.3 Setting the analytical tools
 
-Before we get started, we need to ensure that **spdep**, **sf**, **tmap** and **tidyverse** packages of R are currently installed in R.
+Before we get started, we need to ensure that **spdep**, **sf**, **tmap**, **tidyverse** and **readr** packages of R are currently installed in R.
 
 -   [sf](https://r-spatial.github.io/sf/) is use for importing and handling geospatial data in R,
 
@@ -53,6 +53,8 @@ Before we get started, we need to ensure that **spdep**, **sf**, **tmap** and **
 -   [spdep](https://r-spatial.github.io/spdep/) will be used to compute spatial weights, global and local spatial autocorrelation statistics, and
 
 -   [tmap](https://r-tmap.github.io/tmap/) will be used to prepare cartographic quality chropleth map.
+
+-   [readr](https://readr.tidyverse.org/) will be used to import csv files
 
 The code chunk below is used to perform the following tasks:
 
@@ -65,5 +67,25 @@ The code chunk below is used to perform the following tasks:
 -   launching the packages into R environment
 
 ```{r}
-pacman::p_load(sf, spdep, tmap, tidyverse)
+pacman::p_load(sf, spdep, tmap, tidyverse, readr)
+```
+
+## 1.3 Getting the Data into R Environment
+
+In this section, you will learn how to bring a geospatial data and its associated attribute table into R environment. The geospatial data is in ESRI shapefile format and the attribute table is in csv fomat.
+
+### 1.3.1 Import Shapefile into R Environment
+
+The code chunk below uses [*st_read()*](https://r-spatial.github.io/sf/reference/st_read.html) of **sf** package to import Hunan shapefile into R. The imported shapefile will be **simple features** Object of **sf**.
+
+```{r}
+hunan <- st_read(dsn = "data/geospatial", layer = "Hunan")
+```
+
+### 1.3.2 Import csv file into R environment
+
+Next, we will import *Hunan_2012.csv* into R by using *read_csv()* of **readr** package. The output is R data frame class.
+
+```{r}
+hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 ```
