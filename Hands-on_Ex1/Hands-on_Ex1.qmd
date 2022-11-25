@@ -19,7 +19,7 @@ The code chunk below install and load the following packages into R environment.
 -   [**tmap**](https://cran.r-project.org/web/packages/tmap/): for creating thematic maps
 
 ```{r}
-pacman::p_load(sf, tmap, tidyverse)
+pacman::p_load(sf, tmap, tidyverse, readr, dplyr)
 ```
 
 ## 1.2 Importing Geospatial Data
@@ -204,7 +204,7 @@ Things to learn from the arguments above:
 
 -   *coords* argument requires you to provide the column name of the x-coordinates first then followed by the column name of the y-coordinates.
 
--   *crs* argument requires you to provide the coordinates system in epsg format. [EPSG: 4326](https://epsg.io/4326) is wgs84 Geographic Coordinate System and [EPSG: 3414](https://epsg.io/3414) is Singapore SVY21 Projected Coordinate System. You can search for other country\'s epsg code by referring to [epsg.io](https://epsg.io/).
+-   *crs* argument requires you to provide the coordinates system in epsg format. [EPSG: 4326](https://epsg.io/4326) is wgs84 Geographic Coordinate System and [EPSG: 3414](https://epsg.io/3414) is Singapore SVY21 Projected Coordinate System. You can search for other country's epsg code by referring to [epsg.io](https://epsg.io/).
 
 -   *%\>%* is used to nest *st_transform()* to transform the newly created simple feature data frame into svy21 projected coordinates system.
 
@@ -319,6 +319,7 @@ ggplot(data=mpsz3414,
 ```
 
 ### 
+
 1.8.2 Scatterplot to see the relationship between 2 continuous data
 
 The solution:
@@ -331,8 +332,7 @@ ggplot(data=mpsz3414,
       y = "Pre-school count")
 ```
 
-# 
-2 Choropleth Mapping
+# 2 Choropleth Mapping
 
 Choropleth mapping involves the symbolisation of enumeration units, such as countries, provinces, states, counties or census units, using area patterns or graduated colors. For example, a social scientist may need to use a choropleth map to portray the spatial distribution of aged population of Singapore by Master Plan 2014 Subzone Boundary.
 
@@ -346,7 +346,7 @@ The task will be performed by using *read_csv()* function of **readr** package a
 popdata <- read_csv("data/aspatial/respopagesextod2011to2020.csv")
 ```
 
-## 2.2 Data Preparation 
+## 2.2 Data Preparation
 
 Before a thematic map can be prepared, you are required to prepare a data table with year 2020 values. The data table should include the variables PA, SZ, YOUNG, ECONOMY ACTIVE, AGED, TOTAL, DEPENDENCY.
 
@@ -431,13 +431,13 @@ qtm(mpsz_pop2020,
 
 Things to learn from the code chunk above:
 
--   *tmap_mode()* with \"plot\" option is used to produce a static map. For interactive mode, \"view\" option should be used.
+-   *tmap_mode()* with "plot" option is used to produce a static map. For interactive mode, "view" option should be used.
 
 -   *fill* argument is used to map the attribute (i.e. DEPENDENCY)
 
 ### 2.3.2 Plot using tmap's elements
 
-Despite its usefulness of drawing a choropleth map quickly and easily, the disadvantge of *qtm()* is that it makes aesthetics of individual layers harder to control. To draw a high quality cartographic choropleth map as shown in the figure below, **tmap**\'s drawing elements should be used.
+Despite its usefulness of drawing a choropleth map quickly and easily, the disadvantge of *qtm()* is that it makes aesthetics of individual layers harder to control. To draw a high quality cartographic choropleth map as shown in the figure below, **tmap**'s drawing elements should be used.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -481,7 +481,7 @@ tm_shape(mpsz_pop2020)+
 
 Things to learn from *tm_polygons()*:
 
--   The default interval binning used to draw the choropleth map is called \"pretty\". A detailed discussion of the data classification methods supported by **tmap** will be provided in sub-section 4.3.
+-   The default interval binning used to draw the choropleth map is called "pretty". A detailed discussion of the data classification methods supported by **tmap** will be provided in sub-section 4.3.
 
 -   The default colour scheme used is `YlOrRd` of ColorBrewer. You will learn more about the color scheme in sub-section 4.4.
 
@@ -518,9 +518,10 @@ Beside *alpha* argument, there are three other arguments for *tm_borders()*, the
 
 -   *lwd* = border line width. The default is 1, and
 
--   *lty* = border line type. The default is \"solid\".
+-   *lty* = border line type. The default is "solid".
 
 ## 
+
 2.4 Data Classification Methods of tmap
 
 Most choropleth maps employ some methods of data classification. The point of classification is to take a large number of observations and group them into data ranges or classes.
@@ -554,6 +555,7 @@ tm_shape(mpsz_pop2020)+
 Notice that the distribution of quantile data classification method are more evenly distributed then equal data classification method.
 
 ### 
+
 2.4.2 Plotting choropleth map with custom break
 
 For all the built-in styles, the category breaks are computed internally. In order to override these defaults, the breakpoints can be set explicitly by means of the *breaks* argument to the *tm_fill()*. It is important to note that, in **tmap** the breaks include a minimum and maximum. As a result, in order to end up with n categories, n+1 elements must be specified in the *breaks* option (the values must be in increasing order).
@@ -576,6 +578,7 @@ tm_shape(mpsz_pop2020)+
 ```
 
 ## 
+
 2.5 Colour Scheme
 
 **tmap** supports colour ramps either defined by the user or a set of predefined colour ramps from the **RColorBrewer** package.
@@ -595,7 +598,7 @@ tm_shape(mpsz_pop2020)+
 
 Notice that the choropleth map is shaded in green.
 
-To reverse the colour shading, add a \"-\" prefix.
+To reverse the colour shading, add a "-" prefix.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -606,6 +609,7 @@ tm_shape(mpsz_pop2020)+
 ```
 
 ## 
+
 2.6 Map Layouts
 
 Map layout refers to the combination of all map elements into a cohensive map. Map elements include among others the objects to be mapped, the title, the scale bar, the compass, margins and aspects ratios. Colour settings and data classification methods covered in the previous section relate to the palette and break-points are used to affect how the map looks.
@@ -650,7 +654,6 @@ tm_shape(mpsz_pop2020)+
 
 ### 
 
-
 2.6.3 Cartographic Furniture
 
 Beside map style, **tmap** also also provides arguments to draw other map furniture such as compass, scale bar and grid lines.
@@ -684,6 +687,7 @@ tmap_style("white")
 ```
 
 ## 
+
 2.5 Drawing Small Multiple Choropleth Maps
 
 **Small multiple maps**, also referred to as **facet maps**, are composed of many maps arrange side-by-side, and sometimes stacked vertically. Small multiple maps enable the visualisation of how spatial relationships change with respect to another variable, such as time.
@@ -760,6 +764,7 @@ tmap_arrange(youngmap, agedmap, asp=1, ncol=2)
 ```
 
 ## 
+
 2.6 Mappping Spatial Object Meeting a Selection Criterion
 
 Instead of creating small multiple choropleth map, you can also use selection funtion to map spatial objects meeting the selection criterion.
@@ -781,9 +786,3 @@ tm_shape(mpsz_pop2020[mpsz_pop2020$REGION_N=="CENTRAL REGION", ])+
 ```
 
 ## 
-
-
-
-
-
-
