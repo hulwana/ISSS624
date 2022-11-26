@@ -554,3 +554,11 @@ The analysis consists of three steps:
 -   Mapping Gi statistics
 
 ### 1.11.2 Deriving distance-based weight matrix
+
+First, we need to define a new set of neighbours. Whist the spatial autocorrelation considered units which shared borders, for Getis-Ord we are defining neighbours based on distance.
+
+There are two type of distance-based proximity matrix, they are:
+
+-   fixed distance weight matrix; and
+
+-   adaptive distance weight matrix.
