@@ -1,0 +1,72 @@
+---
+title: "In Class Exericse 2"
+author: "Hulwana"
+editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+## Overview
+
+## \## Getting Started
+
+In the code chunk below, `p_load()` of *pacman* package is used to install and load the following R packages into R environment:
+
+-   [sf](https://r-spatial.github.io/sf/) is use for importing and handling geospatial data in R,
+
+-   [tidyverse](https://www.tidyverse.org/)is mainly use for wrangling attribute data in R,
+
+-   [tmap](https://r-tmap.github.io/tmap/) will be used to prepare cartographic quality chropleth map,
+
+-   [spdep](https://r-spatial.github.io/spdep/) will be used to compute spatial weights, global and local spatial autocorrelation statistics, and
+
+-   [funModeling](https://cran.r-project.org/web/packages/funModeling/vignettes/funModeling_quickstart.html) will be used for rapid Exploratory Data Analysis
+
+```{r}
+pacman::p_load(sf, tidyverse, tmap, spdep, readr, tidyr)
+```
+
+## Importing Geospatial Data
+
+In this in-class data, two geospatial datasets will beused, they are:
+
+-   geo_export
+
+-   nga_ADM2
+
+### Importing Geospatial Data
+
+First, we are going to import the water point geospatial data (i.e. geo_export) by using the code chunk below.
+
+```{r}
+#| eval: false
+# wp <- st_read(dsn = "data", 
+#                    layer = "geo_export",
+#                    crs = 4326) %>%
+#   filter(clean_coun == "Nigeria")
+
+```
+
+Things to learn from the code chunk above:
+
+-   `st_read()` of **sf** package is used to import *geo_export* shapefile into R environment and save the imported geospatial data into simple feature data table.
+
+-   `filter()` of dplyr package is used to extract water point records of Nigeria.
+
+Next, `write_rds()` of readr package is used to save the extracted sf data table (i.e. wp) into an output file in rds data format. The output file is called *wp_nga.rds* and it is saved in *geodata* sub-folder.
+
+```{r}
+#write_rds(wp, "data/wp_nga.rds")
+```
+
+```{r}
+wp_nga <- read_rds("data/wp_nga.rds") %>%
+  dplyr::mutate(status_cle = 
+           replace_na(status_cle, "Unknown"))
+```
+
+### Import Nigeria LGA Boundary data
+
+Now, we are going to import the LGA boundary data into R environment by using the code chunk below.

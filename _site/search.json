@@ -432,5 +432,19 @@
     "title": "Hands-on Exercise 2",
     "section": "1.11 Hot Spot and Cold Spot Area Analysis",
     "text": "1.11 Hot Spot and Cold Spot Area Analysis\nBeside detecting cluster and outliers, localised spatial statistics can be also used to detect hot spot and/or cold spot areas.\nThe term ‘hot spot’ has been used generically across disciplines to describe a region or value that is higher relative to its surroundings (Lepers et al 2005, Aben et al 2012, Isobe et al 2015).\n\n1.11.1 Getis and Ord’s G-Statistics\nAn alternative spatial statistics to detect spatial anomalies is the Getis and Ord’s G-statistics (Getis and Ord, 1972; Ord and Getis, 1995). It looks at neighbours within a defined proximity to identify where either high or low values clutser spatially. Here, statistically significant hot-spots are recognised as areas of high values where other areas within a neighbourhood range also share high values too.\nThe analysis consists of three steps:\n\nDeriving spatial weight matrix\nComputing Gi statistics\nMapping Gi statistics\n\n\n\n1.11.2 Deriving distance-based weight matrix"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#getting-started",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#getting-started",
+    "title": "In Class Exericse 2",
+    "section": "## Getting Started",
+    "text": "## Getting Started\nIn the code chunk below, p_load() of pacman package is used to install and load the following R packages into R environment:\n\nsf is use for importing and handling geospatial data in R,\ntidyverseis mainly use for wrangling attribute data in R,\ntmap will be used to prepare cartographic quality chropleth map,\nspdep will be used to compute spatial weights, global and local spatial autocorrelation statistics, and\nfunModeling will be used for rapid Exploratory Data Analysis"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#importing-geospatial-data",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#importing-geospatial-data",
+    "title": "In Class Exericse 2",
+    "section": "Importing Geospatial Data",
+    "text": "Importing Geospatial Data\nIn this in-class data, two geospatial datasets will beused, they are:\n\ngeo_export\nnga_ADM2\n\n\nImporting Geospatial Data\nFirst, we are going to import the water point geospatial data (i.e. geo_export) by using the code chunk below.\n\n\n\nThings to learn from the code chunk above:\n\nst_read() of sf package is used to import geo_export shapefile into R environment and save the imported geospatial data into simple feature data table.\nfilter() of dplyr package is used to extract water point records of Nigeria.\n\nNext, write_rds() of readr package is used to save the extracted sf data table (i.e. wp) into an output file in rds data format. The output file is called wp_nga.rds and it is saved in geodata sub-folder.\n\n\n\n\n\n\n\n\nImport Nigeria LGA Boundary data\nNow, we are going to import the LGA boundary data into R environment by using the code chunk below."
   }
 ]
