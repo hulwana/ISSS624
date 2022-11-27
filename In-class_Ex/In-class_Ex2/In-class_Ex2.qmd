@@ -3,8 +3,6 @@ title: "In Class Exericse 2"
 author: "Hulwana"
 editor: visual
 execute:
-  eval: false
-  echo: false
   warning: false
   message: false
 ---
@@ -68,6 +66,7 @@ write_rds(wp, "data/wp_nga.rds")
 Now, we are going to import the LGA boundary data into R environment by using the code chunk below.
 
 ```{r}
+#| eval: false
 nga <- st_read(dsn = "data",
                layer = "geoBoundaries-NGA-ADM2",
                crs = 4326)
@@ -109,6 +108,7 @@ In this section, we will extract the water point records by using classes in *st
 In the code chunk below, `filter()` of dplyr is used to select functional water points.
 
 ```{r}
+#| eval: false
 wpt_functional <- wp_nga %>%
   filter(status_cle %in%
            c("Functional", 
@@ -127,6 +127,7 @@ freq(data = wpt_functional,
 In the code chunk below, `filter()` of dplyr is used to select non-functional water points.
 
 ```{r}
+#| eval: false
 wpt_nonfunctional <- wp_nga %>%
   filter(status_cle %in%
            c("Abandoned/Decommissioned", 
@@ -137,6 +138,7 @@ wpt_nonfunctional <- wp_nga %>%
 ```
 
 ```{r}
+#| eval: false
 freq(data=wpt_nonfunctional, 
      input = 'status_cle')
 ```
@@ -146,6 +148,7 @@ freq(data=wpt_nonfunctional,
 In the code chunk below, `filter()` of dplyr is used to select water points with unknown status.
 
 ```{r}
+#| eval: false
 wpt_unknown <- wp_nga %>%
   filter(status_cle == "Unknown")
 ```
@@ -155,6 +158,7 @@ wpt_unknown <- wp_nga %>%
 1.5 Performing Point-in-Polygon Count
 
 ```{r}
+#| eval: false
 nga_wp <- nga %>% 
   mutate(`total wpt` = lengths(
     st_intersects(nga, wp_nga))) %>%
@@ -169,6 +173,7 @@ nga_wp <- nga %>%
 ## 1.6 Saving the Analytical Data Table
 
 ```{r}
+#| eval: false
 nga_wp <- nga_wp %>%
   mutate(pct_functional = `wpt functional`/`total wpt`) %>%
   mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`) %>%
@@ -184,6 +189,7 @@ Things to learn from the code chunk above:
 Now, you have the tidy sf data table subsequent analysis. We will save the sf data table into rds format.
 
 ```{r}
+#| eval: false
 write_rds(nga_wp, "data/nga_wp.rds")
 ```
 
