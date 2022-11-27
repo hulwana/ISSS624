@@ -3,20 +3,21 @@ title: "In Class Exericse 2"
 author: "Hulwana"
 editor: visual
 execute:
+  eval: false
   echo: false
   warning: false
   message: false
 ---
 
-## Overview
+## 1 Overview
 
-## \## Getting Started
+## 1.1 Getting Started
 
 In the code chunk below, `p_load()` of *pacman* package is used to install and load the following R packages into R environment:
 
 -   [sf](https://r-spatial.github.io/sf/) is use for importing and handling geospatial data in R,
 
--   [tidyverse](https://www.tidyverse.org/)is mainly use for wrangling attribute data in R,
+-   [tidyverse](https://www.tidyverse.org/) is mainly use for wrangling attribute data in R,
 
 -   [tmap](https://r-tmap.github.io/tmap/) will be used to prepare cartographic quality chropleth map,
 
@@ -25,10 +26,10 @@ In the code chunk below, `p_load()` of *pacman* package is used to install and l
 -   [funModeling](https://cran.r-project.org/web/packages/funModeling/vignettes/funModeling_quickstart.html) will be used for rapid Exploratory Data Analysis
 
 ```{r}
-pacman::p_load(sf, tidyverse, tmap, spdep, readr, tidyr)
+pacman::p_load(sf, tidyverse, tmap, spdep, readr, tidyr,funModeling)
 ```
 
-## Importing Geospatial Data
+## 1.2 Importing Geospatial Data
 
 In this in-class data, two geospatial datasets will beused, they are:
 
@@ -36,13 +37,13 @@ In this in-class data, two geospatial datasets will beused, they are:
 
 -   nga_ADM2
 
-### Importing Geospatial Data
+### 1.2.1 Importing Geospatial Data
 
 First, we are going to import the water point geospatial data (i.e. geo_export) by using the code chunk below.
 
 ```{r}
 #| eval: false
-# wp <- st_read(dsn = "data", 
+# wp <- st_read(dsn = "data",
 #                    layer = "geo_export",
 #                    crs = 4326) %>%
 #   filter(clean_coun == "Nigeria")
@@ -58,15 +59,142 @@ Things to learn from the code chunk above:
 Next, `write_rds()` of readr package is used to save the extracted sf data table (i.e. wp) into an output file in rds data format. The output file is called *wp_nga.rds* and it is saved in *geodata* sub-folder.
 
 ```{r}
-#write_rds(wp, "data/wp_nga.rds")
+#| eval: false
+write_rds(wp, "data/wp_nga.rds")
 ```
 
+### 1.2.2 Import Nigeria LGA Boundary data
+
+Now, we are going to import the LGA boundary data into R environment by using the code chunk below.
+
 ```{r}
+nga <- st_read(dsn = "data",
+               layer = "geoBoundaries-NGA-ADM2",
+               crs = 4326)
+```
+
+Thing to learn from the code chunk above.
+
+-   `st_read()` of **sf** package is used to import *nga_admbnda_adm2_osgof_20190417* shapefile into R environment and save the imported geospatial data into simple feature data table.
+
+## 1.3 Data Wrangling
+
+### 1.3.1 Recoding NA values into string
+
+In the code chunk below, `replace_na()` is used to recode all the *NA* values in *status_cle* field into *Unknown*.
+
+```{r}
+#| eval: false
 wp_nga <- read_rds("data/wp_nga.rds") %>%
   dplyr::mutate(status_cle = 
            replace_na(status_cle, "Unknown"))
 ```
 
-### Import Nigeria LGA Boundary data
+### 1.3.2 EDA
 
-Now, we are going to import the LGA boundary data into R environment by using the code chunk below.
+In the code chunk below, `freq()` of **funModeling** package is used to display the distribution of *status_cle* field in *wp_nga*.
+
+```{r}
+#| eval: false
+freq(data=wp_nga, 
+     input = 'status_cle')
+```
+
+## 1.4 Extracting Water Point Data
+
+In this section, we will extract the water point records by using classes in *status_cle* field.
+
+### 1.4.1 Extracting functional water point
+
+In the code chunk below, `filter()` of dplyr is used to select functional water points.
+
+```{r}
+wpt_functional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Functional", 
+             "Functional but not in use",
+             "Functional but needs repair"))
+```
+
+```{r}
+#| eval: false
+freq(data = wpt_functional,
+     input = "status_cle")
+```
+
+### 1.4.2 Extracting non-functional water point
+
+In the code chunk below, `filter()` of dplyr is used to select non-functional water points.
+
+```{r}
+wpt_nonfunctional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Abandoned/Decommissioned", 
+             "Abandoned",
+             "Non-Functional",
+             "Non functional due to dry season",
+             "Non-Functional due to dry season"))
+```
+
+```{r}
+freq(data=wpt_nonfunctional, 
+     input = 'status_cle')
+```
+
+### 1.4.3 Extracting water point with Unknown class
+
+In the code chunk below, `filter()` of dplyr is used to select water points with unknown status.
+
+```{r}
+wpt_unknown <- wp_nga %>%
+  filter(status_cle == "Unknown")
+```
+
+## 
+
+1.5 Performing Point-in-Polygon Count
+
+```{r}
+nga_wp <- nga %>% 
+  mutate(`total wpt` = lengths(
+    st_intersects(nga, wp_nga))) %>%
+  mutate(`wpt functional` = lengths(
+    st_intersects(nga, wpt_functional))) %>%
+  mutate(`wpt non-functional` = lengths(
+    st_intersects(nga, wpt_nonfunctional))) %>%
+  mutate(`wpt unknown` = lengths(
+    st_intersects(nga, wpt_unknown)))
+```
+
+## 1.6 Saving the Analytical Data Table
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_functional = `wpt functional`/`total wpt`) %>%
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`) %>%
+  dplyr::select(1, 6:10)
+```
+
+Things to learn from the code chunk above:
+
+-   `mutate()` of **dplyr** package is used to derive two fields namely *pct_functional* and *pct_non-functional*.
+
+-   to keep the file size small, `select()` of **dplyr** is used to retain only field 1, 6,7,8,9 and 10.
+
+Now, you have the tidy sf data table subsequent analysis. We will save the sf data table into rds format.
+
+```{r}
+write_rds(nga_wp, "data/nga_wp.rds")
+```
+
+## 1.7 Visualising the Spatial Distribution of Water Points
+
+```{r}
+nga_wp <- read_rds("data/nga_wp.rds")
+total <- qtm(nga_wp, "total wpt")
+wp_functional <- qtm(nga_wp, "wpt functional")
+wp_nonfunctional <- qtm(nga_wp, "wpt non-functional")
+unknown <- qtm(nga_wp, "wpt unknown")
+
+tmap_arrange(total, wp_functional, wp_nonfunctional, unknown, asp=1, ncol=2)
+```

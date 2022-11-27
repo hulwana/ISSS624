@@ -437,14 +437,49 @@
     "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#getting-started",
     "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#getting-started",
     "title": "In Class Exericse 2",
-    "section": "## Getting Started",
-    "text": "## Getting Started\nIn the code chunk below, p_load() of pacman package is used to install and load the following R packages into R environment:\n\nsf is use for importing and handling geospatial data in R,\ntidyverseis mainly use for wrangling attribute data in R,\ntmap will be used to prepare cartographic quality chropleth map,\nspdep will be used to compute spatial weights, global and local spatial autocorrelation statistics, and\nfunModeling will be used for rapid Exploratory Data Analysis"
+    "section": "1.1 Getting Started",
+    "text": "1.1 Getting Started\nIn the code chunk below, p_load() of pacman package is used to install and load the following R packages into R environment:\n\nsf is use for importing and handling geospatial data in R,\ntidyverse is mainly use for wrangling attribute data in R,\ntmap will be used to prepare cartographic quality chropleth map,\nspdep will be used to compute spatial weights, global and local spatial autocorrelation statistics, and\nfunModeling will be used for rapid Exploratory Data Analysis"
   },
   {
     "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#importing-geospatial-data",
     "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#importing-geospatial-data",
     "title": "In Class Exericse 2",
-    "section": "Importing Geospatial Data",
-    "text": "Importing Geospatial Data\nIn this in-class data, two geospatial datasets will beused, they are:\n\ngeo_export\nnga_ADM2\n\n\nImporting Geospatial Data\nFirst, we are going to import the water point geospatial data (i.e. geo_export) by using the code chunk below.\n\n\n\nThings to learn from the code chunk above:\n\nst_read() of sf package is used to import geo_export shapefile into R environment and save the imported geospatial data into simple feature data table.\nfilter() of dplyr package is used to extract water point records of Nigeria.\n\nNext, write_rds() of readr package is used to save the extracted sf data table (i.e. wp) into an output file in rds data format. The output file is called wp_nga.rds and it is saved in geodata sub-folder.\n\n\n\n\n\n\n\n\nImport Nigeria LGA Boundary data\nNow, we are going to import the LGA boundary data into R environment by using the code chunk below."
+    "section": "1.2 Importing Geospatial Data",
+    "text": "1.2 Importing Geospatial Data\nIn this in-class data, two geospatial datasets will beused, they are:\n\ngeo_export\nnga_ADM2\n\n\n1.2.1 Importing Geospatial Data\nFirst, we are going to import the water point geospatial data (i.e. geo_export) by using the code chunk below.\n\n\n\nThings to learn from the code chunk above:\n\nst_read() of sf package is used to import geo_export shapefile into R environment and save the imported geospatial data into simple feature data table.\nfilter() of dplyr package is used to extract water point records of Nigeria.\n\nNext, write_rds() of readr package is used to save the extracted sf data table (i.e. wp) into an output file in rds data format. The output file is called wp_nga.rds and it is saved in geodata sub-folder.\n\n\n\n\n\n1.2.2 Import Nigeria LGA Boundary data\nNow, we are going to import the LGA boundary data into R environment by using the code chunk below.\n\n\n\nThing to learn from the code chunk above.\n\nst_read() of sf package is used to import nga_admbnda_adm2_osgof_20190417 shapefile into R environment and save the imported geospatial data into simple feature data table."
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#data-wrangling",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#data-wrangling",
+    "title": "In Class Exericse 2",
+    "section": "1.3 Data Wrangling",
+    "text": "1.3 Data Wrangling\n\n1.3.1 Recoding NA values into string\nIn the code chunk below, replace_na() is used to recode all the NA values in status_cle field into Unknown.\n\n\n\n\n\n1.3.2 EDA\nIn the code chunk below, freq() of funModeling package is used to display the distribution of status_cle field in wp_nga."
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#extracting-water-point-data",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#extracting-water-point-data",
+    "title": "In Class Exericse 2",
+    "section": "1.4 Extracting Water Point Data",
+    "text": "1.4 Extracting Water Point Data\nIn this section, we will extract the water point records by using classes in status_cle field.\n\n1.4.1 Extracting functional water point\nIn the code chunk below, filter() of dplyr is used to select functional water points.\n\n\n\n\n\n\n\n\n1.4.2 Extracting non-functional water point\nIn the code chunk below, filter() of dplyr is used to select non-functional water points.\n\n\n\n\n\n\n\n\n1.4.3 Extracting water point with Unknown class\nIn the code chunk below, filter() of dplyr is used to select water points with unknown status."
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#section",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#section",
+    "title": "In Class Exericse 2",
+    "section": "",
+    "text": "1.5 Performing Point-in-Polygon Count"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#saving-the-analytical-data-table",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#saving-the-analytical-data-table",
+    "title": "In Class Exericse 2",
+    "section": "1.6 Saving the Analytical Data Table",
+    "text": "1.6 Saving the Analytical Data Table\n\n\n\nThings to learn from the code chunk above:\n\nmutate() of dplyr package is used to derive two fields namely pct_functional and pct_non-functional.\nto keep the file size small, select() of dplyr is used to retain only field 1, 6,7,8,9 and 10.\n\nNow, you have the tidy sf data table subsequent analysis. We will save the sf data table into rds format."
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#visualising-the-spatial-distribution-of-water-points",
+    "href": "In-class_Ex/In-class_Ex2/In-class_Ex2.html#visualising-the-spatial-distribution-of-water-points",
+    "title": "In Class Exericse 2",
+    "section": "1.7 Visualising the Spatial Distribution of Water Points",
+    "text": "1.7 Visualising the Spatial Distribution of Water Points"
   }
 ]

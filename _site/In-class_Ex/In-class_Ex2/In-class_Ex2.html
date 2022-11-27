@@ -129,13 +129,27 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
-  <li><a href="#getting-started" id="toc-getting-started" class="nav-link" data-scroll-target="#getting-started">## Getting Started</a></li>
-  <li><a href="#importing-geospatial-data" id="toc-importing-geospatial-data" class="nav-link" data-scroll-target="#importing-geospatial-data">Importing Geospatial Data</a>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">1 Overview</a></li>
+  <li><a href="#getting-started" id="toc-getting-started" class="nav-link" data-scroll-target="#getting-started">1.1 Getting Started</a></li>
+  <li><a href="#importing-geospatial-data" id="toc-importing-geospatial-data" class="nav-link" data-scroll-target="#importing-geospatial-data">1.2 Importing Geospatial Data</a>
   <ul class="collapse">
-  <li><a href="#importing-geospatial-data-1" id="toc-importing-geospatial-data-1" class="nav-link" data-scroll-target="#importing-geospatial-data-1">Importing Geospatial Data</a></li>
-  <li><a href="#import-nigeria-lga-boundary-data" id="toc-import-nigeria-lga-boundary-data" class="nav-link" data-scroll-target="#import-nigeria-lga-boundary-data">Import Nigeria LGA Boundary data</a></li>
+  <li><a href="#importing-geospatial-data-1" id="toc-importing-geospatial-data-1" class="nav-link" data-scroll-target="#importing-geospatial-data-1">1.2.1 Importing Geospatial Data</a></li>
+  <li><a href="#import-nigeria-lga-boundary-data" id="toc-import-nigeria-lga-boundary-data" class="nav-link" data-scroll-target="#import-nigeria-lga-boundary-data">1.2.2 Import Nigeria LGA Boundary data</a></li>
   </ul></li>
+  <li><a href="#data-wrangling" id="toc-data-wrangling" class="nav-link" data-scroll-target="#data-wrangling">1.3 Data Wrangling</a>
+  <ul class="collapse">
+  <li><a href="#recoding-na-values-into-string" id="toc-recoding-na-values-into-string" class="nav-link" data-scroll-target="#recoding-na-values-into-string">1.3.1 Recoding NA values into string</a></li>
+  <li><a href="#eda" id="toc-eda" class="nav-link" data-scroll-target="#eda">1.3.2 EDA</a></li>
+  </ul></li>
+  <li><a href="#extracting-water-point-data" id="toc-extracting-water-point-data" class="nav-link" data-scroll-target="#extracting-water-point-data">1.4 Extracting Water Point Data</a>
+  <ul class="collapse">
+  <li><a href="#extracting-functional-water-point" id="toc-extracting-functional-water-point" class="nav-link" data-scroll-target="#extracting-functional-water-point">1.4.1 Extracting functional water point</a></li>
+  <li><a href="#extracting-non-functional-water-point" id="toc-extracting-non-functional-water-point" class="nav-link" data-scroll-target="#extracting-non-functional-water-point">1.4.2 Extracting non-functional water point</a></li>
+  <li><a href="#extracting-water-point-with-unknown-class" id="toc-extracting-water-point-with-unknown-class" class="nav-link" data-scroll-target="#extracting-water-point-with-unknown-class">1.4.3 Extracting water point with Unknown class</a></li>
+  </ul></li>
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
+  <li><a href="#saving-the-analytical-data-table" id="toc-saving-the-analytical-data-table" class="nav-link" data-scroll-target="#saving-the-analytical-data-table">1.6 Saving the Analytical Data Table</a></li>
+  <li><a href="#visualising-the-spatial-distribution-of-water-points" id="toc-visualising-the-spatial-distribution-of-water-points" class="nav-link" data-scroll-target="#visualising-the-spatial-distribution-of-water-points">1.7 Visualising the Spatial Distribution of Water Points</a></li>
   </ul>
 </nav>
     </div>
@@ -165,14 +179,14 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 <section id="overview" class="level2">
-<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<h2 class="anchored" data-anchor-id="overview">1 Overview</h2>
 </section>
 <section id="getting-started" class="level2">
-<h2 class="anchored" data-anchor-id="getting-started">## Getting Started</h2>
+<h2 class="anchored" data-anchor-id="getting-started">1.1 Getting Started</h2>
 <p>In the code chunk below, <code>p_load()</code> of <em>pacman</em> package is used to install and load the following R packages into R environment:</p>
 <ul>
 <li><p><a href="https://r-spatial.github.io/sf/">sf</a> is use for importing and handling geospatial data in R,</p></li>
-<li><p><a href="https://www.tidyverse.org/">tidyverse</a>is mainly use for wrangling attribute data in R,</p></li>
+<li><p><a href="https://www.tidyverse.org/">tidyverse</a> is mainly use for wrangling attribute data in R,</p></li>
 <li><p><a href="https://r-tmap.github.io/tmap/">tmap</a> will be used to prepare cartographic quality chropleth map,</p></li>
 <li><p><a href="https://r-spatial.github.io/spdep/">spdep</a> will be used to compute spatial weights, global and local spatial autocorrelation statistics, and</p></li>
 <li><p><a href="https://cran.r-project.org/web/packages/funModeling/vignettes/funModeling_quickstart.html">funModeling</a> will be used for rapid Exploratory Data Analysis</p></li>
@@ -182,14 +196,14 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </section>
 <section id="importing-geospatial-data" class="level2">
-<h2 class="anchored" data-anchor-id="importing-geospatial-data">Importing Geospatial Data</h2>
+<h2 class="anchored" data-anchor-id="importing-geospatial-data">1.2 Importing Geospatial Data</h2>
 <p>In this in-class data, two geospatial datasets will beused, they are:</p>
 <ul>
 <li><p>geo_export</p></li>
 <li><p>nga_ADM2</p></li>
 </ul>
 <section id="importing-geospatial-data-1" class="level3">
-<h3 class="anchored" data-anchor-id="importing-geospatial-data-1">Importing Geospatial Data</h3>
+<h3 class="anchored" data-anchor-id="importing-geospatial-data-1">1.2.1 Importing Geospatial Data</h3>
 <p>First, we are going to import the water point geospatial data (i.e.&nbsp;geo_export) by using the code chunk below.</p>
 <div class="cell">
 
@@ -203,16 +217,96 @@ ul.task-list li input[type="checkbox"] {
 <div class="cell">
 
 </div>
+</section>
+<section id="import-nigeria-lga-boundary-data" class="level3">
+<h3 class="anchored" data-anchor-id="import-nigeria-lga-boundary-data">1.2.2 Import Nigeria LGA Boundary data</h3>
+<p>Now, we are going to import the LGA boundary data into R environment by using the code chunk below.</p>
+<div class="cell">
+
+</div>
+<p>Thing to learn from the code chunk above.</p>
+<ul>
+<li><code>st_read()</code> of <strong>sf</strong> package is used to import <em>nga_admbnda_adm2_osgof_20190417</em> shapefile into R environment and save the imported geospatial data into simple feature data table.</li>
+</ul>
+</section>
+</section>
+<section id="data-wrangling" class="level2">
+<h2 class="anchored" data-anchor-id="data-wrangling">1.3 Data Wrangling</h2>
+<section id="recoding-na-values-into-string" class="level3">
+<h3 class="anchored" data-anchor-id="recoding-na-values-into-string">1.3.1 Recoding NA values into string</h3>
+<p>In the code chunk below, <code>replace_na()</code> is used to recode all the <em>NA</em> values in <em>status_cle</em> field into <em>Unknown</em>.</p>
 <div class="cell">
 
 </div>
 </section>
-<section id="import-nigeria-lga-boundary-data" class="level3">
-<h3 class="anchored" data-anchor-id="import-nigeria-lga-boundary-data">Import Nigeria LGA Boundary data</h3>
-<p>Now, we are going to import the LGA boundary data into R environment by using the code chunk below.</p>
+<section id="eda" class="level3">
+<h3 class="anchored" data-anchor-id="eda">1.3.2 EDA</h3>
+<p>In the code chunk below, <code>freq()</code> of <strong>funModeling</strong> package is used to display the distribution of <em>status_cle</em> field in <em>wp_nga</em>.</p>
+<div class="cell">
 
-
+</div>
 </section>
+</section>
+<section id="extracting-water-point-data" class="level2">
+<h2 class="anchored" data-anchor-id="extracting-water-point-data">1.4 Extracting Water Point Data</h2>
+<p>In this section, we will extract the water point records by using classes in <em>status_cle</em> field.</p>
+<section id="extracting-functional-water-point" class="level3">
+<h3 class="anchored" data-anchor-id="extracting-functional-water-point">1.4.1 Extracting functional water point</h3>
+<p>In the code chunk below, <code>filter()</code> of dplyr is used to select functional water points.</p>
+<div class="cell">
+
+</div>
+<div class="cell">
+
+</div>
+</section>
+<section id="extracting-non-functional-water-point" class="level3">
+<h3 class="anchored" data-anchor-id="extracting-non-functional-water-point">1.4.2 Extracting non-functional water point</h3>
+<p>In the code chunk below, <code>filter()</code> of dplyr is used to select non-functional water points.</p>
+<div class="cell">
+
+</div>
+<div class="cell">
+
+</div>
+</section>
+<section id="extracting-water-point-with-unknown-class" class="level3">
+<h3 class="anchored" data-anchor-id="extracting-water-point-with-unknown-class">1.4.3 Extracting water point with Unknown class</h3>
+<p>In the code chunk below, <code>filter()</code> of dplyr is used to select water points with unknown status.</p>
+<div class="cell">
+
+</div>
+</section>
+</section>
+<section id="section" class="level2">
+<h2 class="anchored" data-anchor-id="section"></h2>
+<p>1.5 Performing Point-in-Polygon Count</p>
+<div class="cell">
+
+</div>
+</section>
+<section id="saving-the-analytical-data-table" class="level2">
+<h2 class="anchored" data-anchor-id="saving-the-analytical-data-table">1.6 Saving the Analytical Data Table</h2>
+<div class="cell">
+
+</div>
+<p>Things to learn from the code chunk above:</p>
+<ul>
+<li><p><code>mutate()</code> of <strong>dplyr</strong> package is used to derive two fields namely <em>pct_functional</em> and <em>pct_non-functional</em>.</p></li>
+<li><p>to keep the file size small, <code>select()</code> of <strong>dplyr</strong> is used to retain only field 1, 6,7,8,9 and 10.</p></li>
+</ul>
+<p>Now, you have the tidy sf data table subsequent analysis. We will save the sf data table into rds format.</p>
+<div class="cell">
+
+</div>
+</section>
+<section id="visualising-the-spatial-distribution-of-water-points" class="level2">
+<h2 class="anchored" data-anchor-id="visualising-the-spatial-distribution-of-water-points">1.7 Visualising the Spatial Distribution of Water Points</h2>
+<div class="cell">
+
+</div>
+
+
 </section>
 
 </main> <!-- /main -->
