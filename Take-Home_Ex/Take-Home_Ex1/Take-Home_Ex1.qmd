@@ -24,7 +24,7 @@ In the code chunk below, `p_load()` of *pacman* package is used to install and l
 -   [funModeling](https://cran.r-project.org/web/packages/funModeling/vignettes/funModeling_quickstart.html) will be used for rapid Exploratory Data Analysis
 
 ```{r}
-pacman::p_load(sf, tidyverse, tmap, spdep, readr, tidyr,funModeling)
+pacman::p_load(sf, tidyverse, tmap, spdep, readr, dplyr, tidyr,funModeling)
 ```
 
 ## 1.2 Importing Geospatial Data
@@ -98,6 +98,10 @@ In the code chunk below, `freq()` of **funModeling** package is used to display 
 freq(data=wp_nga, 
      input = 'status_cle')
 ```
+
+The above bar chart provide a brief understanding that the percentage of water-points that are functional in Nigeria is slightly less than 50%. It is crucial thus to dive deeper to determine if there are significant pattern in areas that do not have functional water-points and if the neighbouring areas can support those areas that face scarcity in water supply.
+
+Observe that there are two categories with similar names (i.e. 'Non-functional due to dry season' and 'Non functional due to dry season', we will standardise this by shanging that later to 'Non-functional due to dry season'.
 
 ## 1.4 Extracting Water Point Data
 
@@ -196,11 +200,47 @@ write_rds(nga_wp, "data/nga_wp.rds")
 ## 1.7 Visualising the Spatial Distribution of Water Points
 
 ```{r}
+#| fig-width: 14
+#| fig-height: 12
 nga_wp <- read_rds("data/nga_wp.rds")
 total <- qtm(nga_wp, "total wpt")
 wp_functional <- qtm(nga_wp, "wpt functional")
 wp_nonfunctional <- qtm(nga_wp, "wpt non-functional")
 unknown <- qtm(nga_wp, "wpt unknown")
 
+tmap_mode("view")
 tmap_arrange(total, wp_functional, wp_nonfunctional, unknown, asp=1, ncol=2)
+
+
 ```
+
+Based on the above chart, we observe that in terms of functional water-points the north-west zone has the most functional water-points the number of non-functional water-points seems to be scattered all over in Nigeria.
+
+It is interesting to note that while the district Ifelodun has a relatively higher number of functional waterpoints, it also has the highest number of non-functional waterpoints.
+
+In terms of unknown waterpoint statuses it it mostly populated in the north-central zone of Nigeria.
+
+## Summary Statistics of the data
+
+First we will take a look the dataset.
+
+```{r}
+head(nga_wp, n= 10)
+```
+
+### 1.8.1 Top 10 areas with the most functional waterpoints
+
+```{r}
+top_func <- nga_wp %>%
+  dplyr::top_n(10, `wpt functional`) %>%
+  dplyr::select(shapeName, `wpt functional`)
+top_func
+```
+
+```{r}
+plot(nga_wp)
+```
+
+## Limitations/ Further work
+
+For future work to consider demarcate the different regions in Nigeria as outline below to understand better if certain region faced water shortage more severely than other regions.
