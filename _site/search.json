@@ -494,7 +494,7 @@
     "href": "Take-Home_Ex/Take-Home_Ex1/Take-Home_Ex1.html#getting-started",
     "title": "Take Home Exercise 1",
     "section": "1.1 Getting Started",
-    "text": "1.1 Getting Started\nIn the code chunk below, p_load() of pacman package is used to install and load the following R packages into R environment:\n\nsf is use for importing and handling geospatial data in R,\ntidyverse is mainly use for wrangling attribute data in R,\ntmap will be used to prepare cartographic quality chropleth map,\nspdep will be used to compute spatial weights, global and local spatial autocorrelation statistics, and\nfunModeling will be used for rapid Exploratory Data Analysis\n\n\npacman::p_load(sf, tidyverse, tmap, spdep, readr, dplyr, tidyr,funModeling)\n\npackage 'tidyverse' successfully unpacked and MD5 sums checked\n\nThe downloaded binary packages are in\n    C:\\Users\\Hulwa\\AppData\\Local\\Temp\\Rtmpam05MD\\downloaded_packages\npackage 'funModeling' successfully unpacked and MD5 sums checked\n\nThe downloaded binary packages are in\n    C:\\Users\\Hulwa\\AppData\\Local\\Temp\\Rtmpam05MD\\downloaded_packages"
+    "text": "1.1 Getting Started\nIn the code chunk below, p_load() of pacman package is used to install and load the following R packages into R environment:\n\nsf is use for importing and handling geospatial data in R,\ntidyverse is mainly use for wrangling attribute data in R,\ntmap will be used to prepare cartographic quality chropleth map,\nspdep will be used to compute spatial weights, global and local spatial autocorrelation statistics, and\nfunModeling will be used for rapid Exploratory Data Analysis\n\n\npacman::p_load(sf, tidyverse, tmap, spdep, readr, dplyr, tidyr,funModeling)"
   },
   {
     "objectID": "Take-Home_Ex/Take-Home_Ex1/Take-Home_Ex1.html#importing-geospatial-data",
@@ -551,5 +551,12 @@
     "title": "Take Home Exercise 1",
     "section": "Limitations/ Further work",
     "text": "Limitations/ Further work\nFor future work to consider demarcate the different regions in Nigeria as outline below to understand better if certain region faced water shortage more severely than other regions."
+  },
+  {
+    "objectID": "Take-Home_Ex/Take-Home_Ex1/Take-Home_Ex1.html#transforming-the-projection-of-preschool-from-wgs84-to-svy21",
+    "href": "Take-Home_Ex/Take-Home_Ex1/Take-Home_Ex1.html#transforming-the-projection-of-preschool-from-wgs84-to-svy21",
+    "title": "Take Home Exercise 1",
+    "section": "1.9 Transforming the projection of preschool from wgs84 to svy21",
+    "text": "1.9 Transforming the projection of preschool from wgs84 to svy21\nIn geospatial analytics, it is very common for us to transform the original data from geographic coordinate system to projected coordinate system. This is because geographic coordinate system is not appropriate if the analysis need to use distance or/and area measurements.\nThe print below reveals that the assigned coordinates system is WGS 84, the 'World Geodetic System 1984' which is inappropriate in our case and should be using the CRS of Nigeria with an ESPG code of either 26391, 26392, and 26303. A country's epsg code can be obtained by referring to epsg.io.\nWe will just use the EPSG code of 26391 in our analysis.\n\nst_geometry(nga_wp)\n\nGeometry set for 774 features \nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 2.668534 ymin: 4.273007 xmax: 14.67882 ymax: 13.89442\nGeodetic CRS:  WGS 84\nFirst 5 geometries:\n\n\nTherefore, we need to reproject nga_wp from one coordinate system to another coordinate system mathemetically using the st_transform function of the sf package, as shown by the code chunk below.\n\nnga_wp26391 <- st_transform(nga_wp, crs = 26391)\n\nNext, we will view the content of nga_wp26391 sf data frame as shown below.\n\nst_geometry(nga_wp26391)\n\nGeometry set for 774 features \nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 28879.72 ymin: 30292.37 xmax: 1343798 ymax: 1094244\nProjected CRS: Minna / Nigeria West Belt\nFirst 5 geometries:\n\n\nNotice that instead of Geodetic CRS it has been changed to a Projected CRS of Minna / Nigeria West Belt."
   }
 ]

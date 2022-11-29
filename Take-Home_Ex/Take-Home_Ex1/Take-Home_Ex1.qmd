@@ -241,6 +241,33 @@ top_func
 plot(nga_wp)
 ```
 
+## 1.9 Transforming the projection of preschool from wgs84 to svy21
+
+In geospatial analytics, it is very common for us to transform the original data from geographic coordinate system to projected coordinate system. This is because geographic coordinate system is not appropriate if the analysis need to use distance or/and area measurements.
+
+The print below reveals that the assigned coordinates system is [WGS 84](https://epsg.io/4326), the \'World Geodetic System 1984\' which is inappropriate in our case and should be using the CRS of Nigeria with an ESPG code of either 26391, 26392, and 26303. A country\'s epsg code can be obtained by referring to [epsg.io](https://epsg.io/).
+
+We will just use the EPSG code of 26391 in our analysis.
+
+```{r}
+st_geometry(nga_wp)
+```
+
+Therefore, we need to reproject `nga_wp` from one coordinate system to another coordinate system mathemetically using the st_transform function of the sf package, as shown by the code chunk below.
+
+```{r}
+nga_wp26391 <- st_transform(nga_wp, crs = 26391)
+```
+
+Next, we will view the content of nga_wp26391 sf data frame as shown below.
+
+```{r}
+st_geometry(nga_wp26391)
+```
+
+Notice that instead of Geodetic CRS it has been changed to a Projected CRS of Minna / Nigeria West Belt.
+
+
 ## Limitations/ Further work
 
 For future work to consider demarcate the different regions in Nigeria as outline below to understand better if certain region faced water shortage more severely than other regions.
