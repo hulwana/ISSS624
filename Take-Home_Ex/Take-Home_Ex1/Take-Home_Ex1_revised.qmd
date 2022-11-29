@@ -24,7 +24,7 @@ In the code chunk below, `p_load()` of *pacman* package is used to install and l
 -   [funModeling](https://cran.r-project.org/web/packages/funModeling/vignettes/funModeling_quickstart.html) will be used for rapid Exploratory Data Analysis
 
 ```{r}
-pacman::p_load(sf, tidyverse, tmap, spdep, readr, dplyr, tidyr,funModeling)
+pacman::p_load(sf, tidyverse, tmap, spdep, readr, dplyr, tidyr,funModeling, plotly, rPackedBar, purrr)
 ```
 
 ## 1.2 Importing Geospatial Data
@@ -354,7 +354,7 @@ tmap_arrange(total, wp_functional, wp_nonfunctional, unknown,
              asp=1, ncol=2)
 ```
 
-# 2 Analysis
+# 2 Analysis of Non-functional Water Points
 
 ## 2.1 Further transformation
 
@@ -382,6 +382,147 @@ st_geometry(nga_wp26391)
 
 Notice that instead of Geodetic CRS it has been changed to a Projected CRS of Minna / Nigeria West Belt.
 
-## Limitations/ Further work
+## 2.2 Visualization
 
-For future work to consider demarcate the different regions in Nigeria as outline below to understand better if certain region faced water shortage more severely than other regions.
+### 2.2.1 Geo Distribution  of non-functional water points across Nigeria based on LGA
+
+```{r}
+tmap_mode("plot")
+
+wp_nonfunctional_count <- tm_shape(nga_wp) +
+  tm_fill("wpt non-functional", palette="Reds") +
+  tm_borders() +
+  tm_layout(main.title = "Distribution based on Equal Interval ",
+            legend.position = c("right", "bottom"))
+
+wp_nonfunctional_quantile <- tm_shape(nga_wp) +
+  tm_fill("wpt non-functional", palette="Reds", style="quantile") +
+  tm_borders() +
+  tm_layout(main.title = "Distribution based on Quantile ",
+            legend.position = c("right", "bottom"))
+
+tmap_arrange(wp_nonfunctional_count, wp_nonfunctional_quantile,
+             asp=1, ncol=2)
+```
+
+### 2.2.2 Areas with most non-functional water points
+
+```{r}
+#| eval: false
+# plotly_packed_bar(nga_wp,
+#                   label_column = "ADM2_EN",
+#                   value_column = "wpt non-functional")
+```
+
+## 2.3 Computing distance based neighbours
+
+In this section, we will derive distance-based weight matrices by using [*dnearneigh()*](https://r-spatial.github.io/spdep/reference/dnearneigh.html) of **spdep** package.
+
+The function identifies neighbours of region points by Euclidean distance with a distance band with lower d1= and upper d2= bounds controlled by the bounds= argument. If unprojected coordinates are used and either specified in the coordinates object x or with x as a two column matrix and longlat=TRUE, great circle distances in **km** will be calculated assuming the WGS84 reference ellipsoid.
+
+### 2.3.1 Obtaining the coordinate values
+
+To get our longitude values we map the st_centroid function over the geometry column of us.bound and access the longitude value through double bracket notation \[\[\]\] and 1. This allows us to get only the longitude, which is the first value in each centroid.
+
+```{r}
+longitude <- purrr::map_dbl(nga_wp$geometry, ~st_centroid(.x)[[1]])
+```
+
+We do the same for latitude with one key difference. We access the second value per each centroid with \[\[2\]\].
+
+```{r}
+latitude <- purrr::map_dbl(nga_wp$geometry, ~st_centroid(.x)[[2]])
+```
+
+Now that we have latitude and longitude, we use cbind to put longitude and latitude into the same object.
+
+```{r}
+coords <- cbind(longitude, latitude)
+```
+
+We check the first few observations to see if things are formatted correctly.
+
+```{r}
+head(coords)
+```
+
+### 2.3.2 Determining the cut-off distance
+
+Firstly, we need to determine the upper limit for distance band by using the steps below:
+
+-   Return a matrix with the indices of points belonging to the set of the k nearest neighbours of each other by using [*knearneigh()*](https://r-spatial.github.io/spdep/reference/knearneigh.html) of **spdep**.
+
+-   Convert the knn object returned by *knearneigh()* into a neighbours list of class nb with a list of integer vectors containing neighbour region number ids by using [*knn2nb()*](https://r-spatial.github.io/spdep/reference/knn2nb.html).
+
+-   Return the length of neighbour relationship edges by using [*nbdists()*](https://r-spatial.github.io/spdep/reference/nbdists.html) of **spdep**. The function returns in the units of the coordinates if the coordinates are projected, in km otherwise.
+
+-   Remove the list structure of the returned object by using [**unlist()**](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/unlist).
+
+```{r}
+k1 <- knn2nb(knearneigh(coords))
+k1dists <- unlist(nbdists(k1, coords, longlat = TRUE))
+summary(k1dists)
+```
+
+The summary report shows that the largest first nearest neighbour distance is 71.66 km, so using this as the upper threshold gives certainty that all units will have at least one neighbour.
+
+### 2.3.3 Computing fixed distance weight matrix
+
+Now, we will compute the distance weight matrix by using *dnearneigh()* as shown in the code chunk below.
+
+```{r}
+wm_d72 <- dnearneigh(coords, 0, 72, longlat = TRUE)
+wm_d72
+```
+
+Notice that the average number of links is 23, this meant that for each area the average number of neigbours based on the distance set is 23.
+
+The neighours of each area can be displayed by executing the following code:
+
+```{r}
+#| eval: false
+str(wm_d72)
+```
+
+#### 2.3.3.1 Plotting fixed distance weight matrix
+
+To visualize the links between each neighbours, we run the code chunk:
+
+```{r}
+plot(nga_wp$geometry, border="lightgrey")
+plot(wm_d72, coords, add=TRUE)
+plot(k1, coords, add=TRUE, col="red", length=0.08)
+
+```
+
+The red lines show the links of 1st nearest neighbours and the black lines show the links of neighbours within the cut-off distance of 72km.
+
+As we see that there are huge patches of black in the plot thus making the visualization difficult to distinguish the links between neighbours, we can plot both of them next to each other by using the code chunk below.
+
+```{r}
+par(mfrow=c(1,2))
+plot(nga_wp$geometry, border="lightgrey")
+plot(k1, coords, add=TRUE, col="red", length=0.08, main="1st nearest neighbours")
+plot(nga_wp$geometry, border="lightgrey")
+plot(wm_d72, coords, add=TRUE, pch = 19, cex = 0.6, main="Distance link")
+```
+
+Despite the separation of plots, it is still hard to see the distinct 1st nearest nighbours links for some areas due to the close proximity. Thus, to achieve a more balance number of neighbours for each area, we will analysed based on the adaptive distance weight matrix.
+
+### 2.3.4 Computing adaptive distance weight matrix
+
+One of the characteristics of fixed distance weight matrix is that more densely settled areas (usually the urban areas) tend to have more neighbours and the less densely settled areas (usually the rural counties) tend to have lesser neighbours. Having many neighbours smoothes the neighbour relationship across more neighbours.
+
+It is possible to control the numbers of neighbours directly using k-nearest neighbours, either accepting asymmetric neighbours or imposing symmetry as shown in the code chunk below.
+
+```{r}
+knn8 <- knn2nb(knearneigh(coords, k=8))
+knn8
+```
+
+Similarly, we can display the content of the matrix by using *str()*.
+
+```{r}
+#| eval: false
+str(knn8)
+```
