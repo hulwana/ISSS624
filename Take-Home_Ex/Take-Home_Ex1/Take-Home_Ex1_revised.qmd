@@ -3,6 +3,7 @@ title: "Take Home Exercise 1"
 author: "Hulwana"
 editor: visual
 execute:
+  eval: false
   warning: false
   message: false
 ---
