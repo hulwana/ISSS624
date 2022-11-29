@@ -68,7 +68,7 @@ Now, we are going to import the LGA boundary data into R environment by using th
 ```{r}
 #| eval: false
 nga <- st_read(dsn = "data",
-               layer = "geoBoundaries-NGA-ADM2",
+               layer = "nga_admbnda_adm2_osgof_20190417",
                crs = 4326)
 ```
 
@@ -101,7 +101,7 @@ freq(data=wp_nga,
 
 The above bar chart provide a brief understanding that the percentage of water-points that are functional in Nigeria is slightly less than 50%. It is crucial thus to dive deeper to determine if there are significant pattern in areas that do not have functional water-points and if the neighbouring areas can support those areas that face scarcity in water supply.
 
-Observe that there are two categories with similar names (i.e. 'Non-functional due to dry season' and 'Non functional due to dry season', we will standardise this by changing that later to 'Non-functional due to dry season'. We will also group those waterpoint which are marked 'Abandoned' with those that are grouped under 'Abandoned/Decommissioned'.
+Observe that there are two categories with similar names (i.e. 'Non-Functional due to dry season' and 'Non functional due to dry season', we will standardize this by changing that later to 'Non-Functional due to dry season'. We will also group those water-points which are marked 'Abandoned' with those that are grouped under 'Abandoned/Decommissioned'.
 
 ```{r}
 #| eval: false
@@ -192,7 +192,8 @@ nga_wp <- nga %>%
 #| eval: false
 nga_wp <- nga_wp %>%
   mutate(pct_functional = `wpt functional`/`total wpt`) %>%
-  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`)
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`) %>%
+  select(3:4, 8:10, 15:23)
 ```
 
 Things to learn from the code chunk above:
@@ -229,7 +230,7 @@ It is interesting to note that while the district Ifelodun has a relatively high
 
 In terms of unknown waterpoint statuses it it mostly populated in the north-central zone of Nigeria.
 
-## Summary Statistics of the data
+## 1.8 Summary Statistics of the data
 
 First we will take a look the dataset.
 
@@ -237,13 +238,28 @@ First we will take a look the dataset.
 head(nga_wp, n= 10)
 ```
 
-### 1.8.1 Top 10 areas with the most functional waterpoints
+### 1.8.1 Top 10 areas with the most functional waterpoints by state or federal capital territory
 
 ```{r}
-top_func <- nga_wp %>%
-  dplyr::top_n(10, `wpt functional`) %>%
-  dplyr::select(shapeName, `wpt functional`)
-top_func
+nga_state <- nga_wp %>%
+  group_by(ADM1_EN) %>%
+  summarise(total_functional = sum(`wpt functional`))
+  # dplyr::top_n(10, `wpt functional`) %>%
+  # dplyr::select(ADM1_EN, `wpt functional`)
+nga_state
+```
+
+Plot by state
+
+```{r}
+tmap_mode("view")
+tm_shape(nga_state)+
+# tm_polygons(col = "orange",
+#            size = 2,
+#            border.col = "black",
+#            border.lwd = 1) +
+tm_fill("total_functional") +
+tm_borders()
 ```
 
 ```{r}
