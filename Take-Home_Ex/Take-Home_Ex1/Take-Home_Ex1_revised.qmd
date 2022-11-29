@@ -24,7 +24,9 @@ In the code chunk below, `p_load()` of *pacman* package is used to install and l
 -   [funModeling](https://cran.r-project.org/web/packages/funModeling/vignettes/funModeling_quickstart.html) will be used for rapid Exploratory Data Analysis
 
 ```{r}
-pacman::p_load(sf, tidyverse, tmap, spdep, readr, dplyr, tidyr,funModeling, plotly, rPackedBar, purrr)
+pacman::p_load(sf, tidyverse, tmap, spdep, funModeling, plotly, rPackedBar, purrr)
+
+# readr, dplyr, tidyr,
 ```
 
 ## 1.2 Importing Geospatial Data
@@ -384,7 +386,7 @@ Notice that instead of Geodetic CRS it has been changed to a Projected CRS of Mi
 
 ## 2.2 Visualization
 
-### 2.2.1 Geo Distribution  of non-functional water points across Nigeria based on LGA
+### 2.2.1 Geo Distribution of non-functional water points across Nigeria based on LGA
 
 ```{r}
 tmap_mode("plot")
@@ -409,9 +411,9 @@ tmap_arrange(wp_nonfunctional_count, wp_nonfunctional_quantile,
 
 ```{r}
 #| eval: false
-# plotly_packed_bar(nga_wp,
-#                   label_column = "ADM2_EN",
-#                   value_column = "wpt non-functional")
+plotly_packed_bar(nga_wp,
+                  label_column = "ADM2_EN",
+                  value_column = "wpt non-functional")
 ```
 
 ## 2.3 Computing distance based neighbours
@@ -525,4 +527,59 @@ Similarly, we can display the content of the matrix by using *str()*.
 ```{r}
 #| eval: false
 str(knn8)
+```
+
+#### 2.3.4.1 Plotting distance based neighbours
+
+We can plot the weight matrix using the code chunk below.
+
+```{r}
+plot(nga_wp$geometry, border="lightgrey")
+plot(knn8, coords, pch = 19, cex = 0.6, add = TRUE, col = "navyblue")
+```
+
+### 
+2.3.5 Weights based on IDW
+
+In this section, we will derive a spatial weight matrix based on Inversed Distance method.
+
+First, we will compute the distances between areas by using [*nbdists()*](https://r-spatial.github.io/spdep/reference/nbdists.html) of **spdep**.
+
+```{r}
+dist <- nbdists(knn8, coords, longlat = TRUE)
+ids <- lapply(dist, function(x) 1/(x))
+```
+
+#### 2.3.5.1 Row-standardised weights matrix
+
+Next, we need to assign weights to each neighboring polygon. In our case, each neighboring polygon will be assigned equal weight (style=\"W\"). This is accomplished by assigning the fraction 1/(#ofneighbors) to each neighboring county then summing the weighted income values. While this is the most intuitive way to summaries the neighbors\' values it has one drawback in that polygons along the edges of the study area will base their lagged values on fewer polygons thus potentially over- or under-estimating the true nature of the spatial autocorrelation in the data. For this example, we\'ll stick with the style=\"W\" option for simplicity\'s sake but note that other more robust options are available, notably style=\"B\".
+
+```{r}
+rswm_knn8 <- nb2listw(knn8, style="W", zero.policy = TRUE)
+rswm_knn8
+```
+
+The zero.policy=TRUE option allows for lists of non-neighbors. This should be used with caution since the user may not be aware of missing neighbors in their dataset however, a zero.policy of FALSE would return an error.
+
+To see the weight of the first polygon\'s eight neighbors type:
+
+```{r}
+rswm_knn8$weights[10]
+```
+
+Each neighbor is assigned a 0.125 of the total weight. This means that when R computes the average neighboring income values, each neighbor\'s income will be multiplied by 0.125 before being tallied.
+
+Using the same method, we can also derive a row standardised distance weight matrix by using the code chunk below.
+
+```{r}
+rswm_ids <- nb2listw(knn8, glist=ids, style="B", zero.policy=TRUE)
+rswm_ids
+```
+
+```{r}
+rswm_ids$weights[1]
+```
+
+```{r}
+summary(unlist(rswm_ids$weights))
 ```
