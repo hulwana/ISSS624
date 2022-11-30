@@ -232,7 +232,7 @@ write_rds(nga_wp, "data/nga_wp.rds")
 ```{r}
 #| fig-width: 14
 #| fig-height: 12
-nga_wp <- read_rds("Take-Home_Ex/Take-Home_Ex1/data/nga_wp.rds")
+nga_wp <- read_rds("data/nga_wp.rds")
 total <- qtm(nga_wp, "total wpt")
 wp_functional <- qtm(nga_wp, "wpt functional")
 wp_nonfunctional <- qtm(nga_wp, "wpt non-functional")
@@ -984,6 +984,102 @@ tmap_arrange(non_func_wp, LISAmap,
 ```
 
 # 5 Hot Spot and Cold Spot Area Analysis
+
+Beside detecting cluster and outliers, localised spatial statistics can be also used to detect hot spot and/or cold spot areas.
+
+The term \'hot spot\' has been used generically across disciplines to describe a region or value that is higher relative to its surroundings (Lepers et al 2005, Aben et al 2012, Isobe et al 2015).
+
+## 5.1 Getis and Ord's G-Statistics
+
+The analysis consists of three parts:
+
+-   Deriving spatial weight matrix
+
+-   Computing Gi statistics
+
+-   Mapping Gi statistics
+
+### 5.1.1 Deriving distance-based weight matrix
+
+First, we need to define a new set of neighbours. Whist the spatial autocorrelation considered units which shared borders, for Getis-Ord we are defining neighbours based on distance.
+
+There are two type of distance-based proximity matrix, they are:
+
+-   fixed distance weight matrix; and (see section 2.3.3)
+
+-   adaptive distance weight matrix. (see section 2.3.4)
+
+#### 5.1.1.1 Fixed distance weight matrix
+
+Continued form section 2.3.3, we use *nb2listw()* to convert the nb object into spatial weights object.
+
+```{r}
+wm72_lw <- nb2listw(wm_d72, style = 'B')
+summary(wm72_lw)
+```
+
+#### 5.1.1.2 Adaptive distance weight matrix
+
+Continued form section 2.3.4, we use *nb2listw()* to convert the nb object into spatial weights object.
+
+```{r}
+knn_lw <- nb2listw(knn8, style = 'B')
+summary(knn_lw)
+```
+
+## 5.2 Computing Gi Statistics
+
+### 5.2.1 Gi Statistics using fixed distance
+
+```{r}
+fips <- order(nga_wp$ADM2_EN)
+gi.fixed <- localG(nga_wp$`wpt non-functional`, wm72_lw)
+```
+
+```{r}
+nga_wp.gi <- cbind(nga_wp, as.matrix(gi.fixed)) %>%
+  rename(gstat_fixed = as.matrix.gi.fixed.)
+```
+
+### 5.2.2 Mapping Gi values with fixed distance weights
+
+```{r}
+nf_wpt <- qtm(nga_wp, "wpt non-functional")
+
+Gimap <-tm_shape(nga_wp.gi) +
+  tm_fill(col = "gstat_fixed", 
+          style = "pretty",
+          palette="-RdBu",
+          title = "local Gi") +
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(nf_wpt, Gimap, asp=1, ncol=2)
+```
+
+### 
+5.2.3 Gi Statistics using adaptive distance
+
+```{r}
+fips <- order(nga_wp$ADM2_EN)
+gi.adaptive <- localG(nga_wp$`wpt non-functional`, knn_lw)
+nga_wp.gi <- cbind(nga_wp, as.matrix(gi.adaptive)) %>%
+  rename(gstat_adaptive = as.matrix.gi.adaptive.)
+```
+
+### 5.2.4 Mapping Gi values with adaptive distance weights
+
+```{r}
+nf_wpt <- qtm(nga_wp, "wpt non-functional")
+
+Gimap <-tm_shape(nga_wp.gi) +
+  tm_fill(col = "gstat_adaptive", 
+          style = "pretty",
+          palette="-RdBu",
+          title = "local Gi") +
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(nf_wpt, Gimap, asp=1, ncol=2)
+```
 
 ## 
 
