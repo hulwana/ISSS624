@@ -6,7 +6,7 @@ editor: visual
 
 # 1 Overview
 
-In this hands-on exercise, you will gain hands-on experience on how to delineate homogeneous region by using geographically referenced multivariate data. There are two major analysis, namely:
+In this hands-on exercise, we will delineate homogeneous region by using geographically referenced multivariate data. There are two major analysis, namely:
 
 -   hierarchical cluster analysis; and
 
@@ -16,9 +16,9 @@ In this hands-on exercise, you will gain hands-on experience on how to delineate
 
 The outcome of this exercise is as outline below:
 
--   to convert GIS polygon data into R\'s simple feature data.frame by using appropriate functions of **sf** package of R;
+-   to convert GIS polygon data into R's simple feature data.frame by using appropriate functions of **sf** package of R;
 
--   to convert simple feature data.frame into R\'s SpatialPolygonDataFrame object by using appropriate **sf** of package of R;
+-   to convert simple feature data.frame into R's SpatialPolygonDataFrame object by using appropriate **sf** of package of R;
 
 -   to perform custer analysis by using *hclust()* of Base R;
 
@@ -102,9 +102,9 @@ The imported township boundary object is called *shan_sf*. It is saved in **simp
 shan_sf
 ```
 
-Notice that sf.data.frame is conformed to Hardy Wickham\'s [tidy](https://edzer.github.io/rstudio_conf/#1) framework.
+Notice that sf.data.frame is conformed to Hardy Wickham's [tidy](https://edzer.github.io/rstudio_conf/#1) framework.
 
-Since *shan_sf* is conformed to tidy framework, we can also *glimpse()* to reveal the data type of it\'s fields.
+Since *shan_sf* is conformed to tidy framework, we can also *glimpse()* to reveal the data type of it's fields.
 
 ```{r}
 glimpse(shan_sf)
@@ -120,7 +120,7 @@ The code chunks used are shown below:
 ict <- read_csv ("data/aspatial/Shan-ICT.csv")
 ```
 
-The imported InfoComm variables are extracted from **The 2014 Myanmar Population and Housing Census Myanmar**. The attribute data set is called *ict*. It is saved in R\'s \* tibble data.frame\* format.
+The imported InfoComm variables are extracted from **The 2014 Myanmar Population and Housing Census Myanmar**. The attribute data set is called *ict*. It is saved in R's \* tibble data.frame\* format.
 
 The code chunk below reveal the summary statistics of *ict* data.frame.
 
@@ -500,7 +500,7 @@ ac <- function(x) {
 map_dbl(m, ac)
 ```
 
-With reference to the output above, we can see that Ward\'s method provides the strongest clustering structure among the four methods assessed. Hence, in the subsequent analysis, only Ward\'s method will be used.
+With reference to the output above, we can see that Ward's method provides the strongest clustering structure among the four methods assessed. Hence, in the subsequent analysis, only Ward's method will be used.
 
 ### 1.7.7 Determining Optimal Clusters
 
@@ -549,7 +549,7 @@ In the dendrogram displayed above, each leaf corresponds to one observation. As 
 
 The height of the fusion, provided on the vertical axis, indicates the (dis)similarity between two observations. The higher the height of the fusion, the less similar the observations are. Note that, conclusions about the proximity of two observations can be drawn only based on the height where branches containing those two observations first are fused. We cannot use the proximity of two observations along the horizontal axis as a criteria of their similarity.
 
-It\'s also possible to draw the dendrogram with a border around the selected clusters by using [*rect.hclust()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/rect.hclust.html) of R stats. The argument *border* is used to specify the border colors for the rectangles.
+It's also possible to draw the dendrogram with a border around the selected clusters by using [*rect.hclust()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/rect.hclust.html) of R stats. The argument *border* is used to specify the border colors for the rectangles.
 
 ```{r}
 plot(hclust_ward, cex = 0.6)
