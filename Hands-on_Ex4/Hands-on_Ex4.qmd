@@ -3,7 +3,6 @@ title: "Hands-on Exercise 4"
 author: "Hulwana"
 editor: visual
 execute: 
-  eval: false
   warning: false
 ---
 
