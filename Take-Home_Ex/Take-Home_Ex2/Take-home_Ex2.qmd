@@ -1,12 +1,15 @@
 ---
-title: "Take-home Exercise 2"
+title: "Take-home Exercise 2: Regionalisation of Multivariate Water Point Attributes with Non-spatially Constrained and Spatially Constrained Clustering Methods"
 author: "Hulwana"
 editor: visual
 execute: 
   eval: false
+  warning: false
 ---
 
 # 1 Overview
+
+The process of creating regions is called [regionalisation](https://www.researchgate.net/publication/28153673_Supervised_Regionalization_Methods_A_Survey/link/0fcfd5094046b13d35000000/download). A regionalisation is a special kind of clustering where the objective is to group observations which are similar in their statistical attributes, but also in their spatial location. In this sense, regionalization embeds the same logic as standard clustering techniques, but also applies a series of geographical constraints. Often, these constraints relate to connectivity: two candidates can only be grouped together in the same region if there exists a path from one member to another member that never leaves the region. These paths often model the spatial relationships in the data, such as contiguity or proximity. However, connectivity does not always need to hold for all regions, and in certain contexts it makes sense to relax connectivity or to impose different types of geographic constraints.
 
 # 1.1 Getting Started
 
@@ -21,7 +24,7 @@ For our analysis, we will utilize the following packages:
 We will run the following code chunk to load the required packages:
 
 ```{r}
-pacman::p_load(sf, tidyverse, tmap, tigris)
+pacman::p_load(sf, tidyverse, tmap, spdep, funModeling)
 ```
 
 ### 1.1.2 Import Data
@@ -29,6 +32,7 @@ pacman::p_load(sf, tidyverse, tmap, tigris)
 #### 1.1.2.1 Importing water point data
 
 ```{r}
+#| eval: false
 wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
   filter(`#clean_country_name` == "Nigeria") %>%
   select(6:10,22,26,42:47,49, 55:57,62)
@@ -53,12 +57,14 @@ Two steps will be used to convert an asptial data file in wkt format into a sf d
 First, `st_as_sfc()` of sf package is used to derive a new field called *Geometry* as shown in the code chunk below.
 
 ```{r}
+#| eval: false
 wp_nga$Geometry <- st_as_sfc(wp_nga$`New Georeferenced Column`)
 ```
 
 Next, `st_sf()` will be used to convert the tibble data frame into sf data frame.
 
 ```{r}
+#| eval: false
 wp_sf <- st_sf(wp_nga, crs=4326) 
 wp_sf
 ```
@@ -70,6 +76,7 @@ When the process completed, a new sf data frame called *wp_sf* will be created.
 For the purpose of this exercise, shapefile downloaded from [geoBoundaries](https://www.geoboundaries.org/) portal will be used.
 
 ```{r}
+#| eval: false
 nga <- st_read(dsn = "data/geospatial",
                layer = "nga_admbnda_adm2_osgof_20190417",
                crs = 4326) %>%
@@ -85,6 +92,7 @@ Before proceeding to the geospatial analysis, we will first prepare the data.
 We will first check if there are any duplicated areas by running the following code chunk:
 
 ```{r}
+#| eval: false
 dup <- nga$ADM2_EN[duplicated(nga$ADM2_EN)]
 dup
 ```
@@ -94,20 +102,13 @@ From the above, we see that areas Bassa, Ifelodun, Irepodun, Nasarawa, Obi and S
 We will then plot the duplicated areas to determine to understand where are the areas with duplicated names
 
 ```{r}
-# dup_areas <- nga %>%
-#   filter(ADM2_EN %in% c("Bassa", "Ifelodun", "Irepodun", "Nasarawa", "Obi", "Surulere")) %>%
-#   select(ADM2_EN, geometry)
-
+#| eval: false
 dup_areas <- nga %>%
   filter(ADM2_EN %in% dup) %>%
   select(ADM2_EN, geometry)
 
 state_borders <- nga %>%
   select(ADM1_EN, geometry)
-
-#state <- tigris::states()
-
-## to access the shape of the states
 
 tmap_mode("view")
 
@@ -123,9 +124,10 @@ tm_shape(dup_areas) +
 
 ```
 
-Upon searching on the web based on the information gathers in [nigeriainfopedia](https://nigerianinfopedia.com.ng/full-list-of-local-government-areas-in-nigeria/), we realised that the duplication in names exist due to areas having similar names in different state. The states at which these areas are located are as follows:
+Upon searching on the web based on the information gathers in [nigeriainfopedia](https://nigerianinfopedia.com.ng/full-list-of-local-government-areas-in-nigeria/), we realized that the duplication in names exist due to areas having similar names in different state. The states at which these areas are located are as follows:
 
 ```{r}
+#| eval: false
 dup_areas_state <- nga %>%
   filter(ADM2_EN %in% dup) %>%
   select(ADM2_EN, ADM1_EN)
@@ -136,6 +138,7 @@ dup_areas_state
 Since these areas have duplicated names, it might result in an inaccurate analysis, and therefore has to be recoded by executing the following code chunk:
 
 ```{r}
+#| eval: false
 nga$ADM2_EN[nga$ADM2_EN == "Bassa" & nga$ADM1_EN == "Kogi"] <- "Bassa (Kogi)"
 nga$ADM2_EN[nga$ADM2_EN == "Bassa" & nga$ADM1_EN == "Plateau"] <- "Bassa (Plateau)"
 nga$ADM2_EN[nga$ADM2_EN == "Ifelodun" & nga$ADM1_EN == "Kwara"] <- "Ifelodun (Kwara)"
@@ -153,6 +156,7 @@ nga$ADM2_EN[nga$ADM2_EN == "Surulere" & nga$ADM1_EN == "Oyo"] <- "Surulere (Oyo)
 Check if there are duplicated in LGA names after the clean-up
 
 ```{r}
+#| eval: false
 nga$ADM2_EN[duplicated(nga$ADM2_EN)]
 ```
 
@@ -163,8 +167,8 @@ Although *wp_sf* sf data frame consists of a field called *#clean_adm2* which by
 In this section, we are going to use a geoprocessing function (or commonly know as GIS analysis) called **point-in-polygon overlay** to transfer the attribute information in *nga* sf data frame into *wp_sf* data frame.
 
 ```{r}
+#| eval: false
 wp_sf <- st_join(wp_sf, nga) 
-  
 ```
 
 Notice that a new field called *shapeName* has been added into *wp_sf* sf data frame. as shown below.
@@ -173,3 +177,183 @@ Notice that a new field called *shapeName* has been added into *wp_sf* sf data f
 #| eval: false
 write_rds(wp_sf, "data/wp_sf.rds")
 ```
+
+## 1.3 Data Wrangling
+
+### 1.3.1 Extract all the required variables and recode if needed
+
+Since we would like to understand if there are any relation ship on the number of functional and non-functional point, we would need to ensure that the variables required are cleaned. We will first load the data to see what are the fields present by using the `glimpse()` function.
+
+```{r}
+wp_nga <- read_rds("data/wp_sf.rds") 
+```
+
+```{r}
+glimpse(wp_nga)
+
+```
+
+We will first select the variables only required for our anlaysis. As we require the following for our analysis
+
+-   Total number of functional water points
+
+-   Total number of nonfunctional water points
+
+-   Percentage of functional water points
+
+-   Percentage of non-functional water points
+
+-   Percentage of main water point technology (i.e. Hand Pump)
+
+-   Percentage of usage capacity (i.e. \< 1000, \>=1000)
+
+-   Percentage of rural water points
+
+We will aslo tidy the name of variables that starts with "\#"
+
+```{r}
+wp_nga_cleaned <- wp_nga %>%
+  select(5,6,13,19:23) %>%
+  rename(`water_tech` = `#water_tech_category`, `status_clean` = `#status_clean`)
+  
+```
+
+Since, we are interested to know how many functional and non-functional taps there are, we execute the following code to count the number of functional and non-functional taps as well as get the percentages of each type of taps.
+
+```{r}
+freq(data=wp_nga_cleaned, 
+     input = 'status_clean')
+```
+
+#### 1.3.1.1 Recoding NA values into String
+
+We observed that there are more than 10% of NAs for this field, in which we will recode it into 'Unknown'.
+
+```{r}
+wp_nga_cleaned <- wp_nga_cleaned %>%
+   dplyr::mutate(status_clean = 
+           replace_na(status_clean, "Unknown"))
+```
+
+### 1.3.2 Extracting Water Point Data
+
+We will re-group the water point categories into the following
+
+-   Unknown
+
+-   Functional
+
+-   Non-functional
+
+#### 1.3.2.1 Extracting Water Point with Unknown Class
+
+In the code chunk below, `filter()` of dplyr is used to select water points with unknown status.
+
+```{r}
+wpt_unknown <- wp_nga_cleaned %>%
+  filter(status_clean == "Unknown")
+```
+
+#### 1.3.2.2 Extracting Functional Water Point
+
+In the code chunk below, `filter()` of dplyr is used to select functional water points.
+
+We will consider the following categories as functional water points:
+
+-   Functional
+
+-   Functional but not in use
+
+-   Functional but needs repair
+
+```{r}
+wpt_functional <- wp_nga_cleaned %>%
+  filter(status_clean %in%
+           c("Functional", 
+             "Functional but not in use",
+             "Functional but needs repair"))
+```
+
+#### 1.3.2.3 Extracting Non-Functional Water Point
+
+On the other hand, the following categories, will be grouped as non-functional water points:
+
+-   Non-Functional
+
+-   Non-Functional due to dry season
+
+-   Abandoned/Decommissioned
+
+-   Abandoned
+
+-   Non functional due to dry season
+
+```{r}
+wpt_nonfunctional <- wp_nga_cleaned %>%
+  filter(status_clean %in%
+           c("Non-Functional",
+             "Non-Functional due to dry season",
+             "Abandoned/Decommissioned",
+             "Abandoned",
+             "Non functional due to dry season"))
+```
+
+#### 1.3.2.4 Performing Point-in-Polygon Count
+
+To count the number of different categories of water points found in each LGA, we will utilize the `mutate()` function for the calculation as shown in the code:
+
+```{r}
+nga_wp <- nga %>% 
+  mutate(`total wpt` = lengths(
+    st_intersects(nga, wp_nga_cleaned))) %>%
+  mutate(`wpt functional` = lengths(
+    st_intersects(nga, wpt_functional))) %>%
+  mutate(`wpt non-functional` = lengths(
+    st_intersects(nga, wpt_nonfunctional))) %>%
+  mutate(`wpt unknown` = lengths(
+    st_intersects(nga, wpt_unknown)))
+```
+
+#### 1.3.2.5 Compute the Percentages of Water Points
+
+To compute the percentages of functional and non-functional water points, we execute the following code
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_functional = `wpt functional`/`total wpt`) %>%
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`)
+```
+
+### 1.3.3 Extracting Water Technology Data
+
+To see what are the different types of water technology present as well as its distribution, we run the following code:
+
+```{r}
+freq(data=wp_nga_cleaned, 
+     input = 'water_tech')
+```
+
+Observed that the dominating type of water technology belongs to the 'Hand Pump' category at 61.84% of the water point found in Nigeria. As the number of 'Mechanized Pump' is substantially large we will also consider the percentage of this type of water point technology in our analysis. The number of water points that are either 'Tapstand' and 'Rope and Bucket' is too small and thus will not be considered as a variable in our analysis.
+
+#### 1.3.3.1 Extracting Hand Pump Water Points
+
+```{r}
+wpt_hand <- wp_nga_cleaned %>%
+  filter(water_tech == "Hand Pump")
+```
+
+#### 1.3.3.2 Extracting Mechanized Pump Water Points
+
+```{r}
+wpt_mechanized <- wp_nga_cleaned %>%
+  filter(water_tech == "Mechanized Pump")
+```
+
+#### 
+
+
+
+
+
+
+
