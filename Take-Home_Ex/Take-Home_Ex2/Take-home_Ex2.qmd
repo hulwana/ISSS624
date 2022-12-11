@@ -24,7 +24,7 @@ For our analysis, we will utilize the following packages:
 We will run the following code chunk to load the required packages:
 
 ```{r}
-pacman::p_load(sf, tidyverse, tmap, spdep, funModeling)
+pacman::p_load(sf, tidyverse, tmap, spdep, funModeling, ggpubr)
 ```
 
 ### 1.1.2 Import Data
@@ -390,7 +390,7 @@ nga_wp <- nga_wp %>%
   mutate(pct_rural = `wpt rural`/`total wpt`)
 ```
 
-#### 
+### 
 1.3.5 Extracting Quality 
 
 #### 1.3.5.1 Different categories fo quality
@@ -481,15 +481,202 @@ nga_wp <- nga_wp %>%
   mutate(pct_cap1000 = `wpt 1000`/`total wpt`)
 ```
 
-#### 
+### 1.3.7
+
+We will then save the cleaned data in rds format.
 
 ```{r}
-#|echo: false
+#| echo: false
 write_rds(wp_rev, "data/wp_rev.rds")
 write_rds(nga, "data/nga.rds")
 write_rds(nga_wp, "data/nga_wp.rds")
 ```
 
-#### 
+# 2 Exploratory Data Analysis
 
+## 2.1 Summary Statistics
 
+Let us review the summary statistics of the newly derived penetration rates using the code chunk below.
+
+```{r}
+summary(nga_wp)
+```
+
+## 2.2 EDA using Histogram
+
+Here, we take a look at the distribution of the percentages variable
+
+```{r}
+functional <- ggplot(data=nga_wp, 
+             aes(x= `pct_functional`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+nonfunctional <- ggplot(data=nga_wp, 
+             aes(x= `pct_non-functional`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+hand <- ggplot(data=nga_wp, 
+             aes(x= `pct_hand`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+mechanized <- ggplot(data=nga_wp, 
+             aes(x= `pct_mechanized`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+rural <- ggplot(data=nga_wp, 
+             aes(x= `pct_rural`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+acceptable <- ggplot(data=nga_wp, 
+             aes(x= `pct_acceptable`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+unacceptable <- ggplot(data=nga_wp, 
+             aes(x= `pct_unacceptable`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+cap300 <- ggplot(data=nga_wp, 
+             aes(x= `pct_cap300`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+cap1000 <- ggplot(data=nga_wp, 
+             aes(x= `pct_cap1000`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+ggarrange(functional, nonfunctional, hand, mechanized, acceptable, unacceptable,
+          cap300, cap1000, rural,
+          ncol = 3, 
+          nrow = 3)
+```
+
+Notice that the variables *pct_acceptable*, *pct_cap300 and pct_rural* are left skewed. Whereas, variables *pct_mechanized, pct_unacceptable* and *pct_cap1000* are right-skewed.
+
+## 2.3 EDA using Chloropleth Map
+
+### 2.3.1 Total Waterpoints
+
+```{r}
+qtm(nga_wp, "total wpt")
+```
+
+From the above map, we notice that there are a number of areas in the north-eastern part of Nigeria in which there 0 data on the number of water points.
+
+### 2.3.2 Distribution of Functional and Non-functional Water Points by Percentages
+
+```{r}
+tmap_mode("view")
+
+pct_functional <- tm_shape(nga_wp) + 
+  tm_fill("pct_functional") + 
+  tm_borders() 
+
+pct_nonfunctional <- tm_shape(nga_wp) + 
+  tm_fill("pct_non-functional") + 
+  tm_borders() 
+
+tmap_arrange(pct_functional, pct_nonfunctional,
+             asp = 1, ncol = 2,
+             sync = TRUE)
+
+tmap_mode("plot")
+```
+
+In terms of functional water points, areas in the northern region have high percentages in comparison to other parts in Nigeria, while in terms of non-functional water points, areas in southern part of Nigeria have higher percentages.
+
+### 2.3.3 Distribution of Hand Pump and Mechanized Pump
+
+```{r}
+tmap_mode("view")
+
+pct_hand <- tm_shape(nga_wp) + 
+  tm_fill("pct_hand", palette = "BuGn") + 
+  tm_borders() 
+
+pct_mechanized <- tm_shape(nga_wp) + 
+  tm_fill("pct_mechanized", palette = "BuGn") + 
+  tm_borders() 
+
+tmap_arrange(pct_hand, pct_mechanized,
+             asp = 1, ncol = 2,
+             sync = TRUE)
+
+tmap_mode("plot")
+```
+
+We see a similar to that of the distribution of functional and non-functional water points, where the norther regions of Nigeria tend to have higher percentages of hand pump but lower percentage of mechanized pump whereas southern regions of Nigeria tended to have higher percentages of mechanized pumps but lower percentages of hand pumps. Perhaps this could be attributed to the the technology and development of the different regions and therefore will proceed to look if there is a similar trend in terms of rural and urban areas.
+
+### 2.3.4 Distribution of Rural Areas by Percentages
+
+```{r}
+tmap_mode("view")
+
+tm_shape(nga_wp) + 
+  tm_fill("pct_rural", palette = "YlGn") + 
+  tm_borders(col = "black", lwd = 2)
+
+tmap_mode("plot")
+```
+
+Surprisingly, in terms of percentage of rural areas, it is almost homogeneous throughout Nigeria.
+
+### 2.3.5 Distribution of Water Quality by Percentages
+
+```{r}
+tmap_mode("view")
+
+pct_accept <- tm_shape(nga_wp) + 
+  tm_fill("pct_acceptable", palette = "Blues") + 
+  tm_borders()
+
+pct_unaccept <- tm_shape(nga_wp) + 
+  tm_fill("pct_unacceptable", palette = "Blues") + 
+  tm_borders()
+
+tmap_arrange(pct_accept, pct_unaccept,
+             asp = 1, ncol = 2,
+             sync = TRUE)
+
+tmap_mode("plot")
+```
+
+Based on the percentages of acceptable water quality, we see that the the distribution is also quite homogeneous among the areas in Nigeria with majority having high percentage of acceptable water quality.
+
+### 2.3.6 Distribution of Usage Capacity
+
+```{r}
+tmap_mode("view")
+
+pct_cap300 <- tm_shape(nga_wp) + 
+  tm_fill("pct_cap300", palette = "BuPu") + 
+  tm_borders()
+
+pct_cap1000 <- tm_shape(nga_wp) + 
+  tm_fill("pct_cap1000", palette = "BuPu") + 
+  tm_borders()
+
+tmap_arrange(pct_cap300, pct_cap1000,
+             asp = 1, ncol = 2,
+             sync = TRUE)
+
+tmap_mode("plot")
+```
+
+We observe that the high percentages of usage capacity that is equal or greater than 1000 is prevalent in the southern part of Nigeria and some areas towards the extreme north-western region of Nigeria.
