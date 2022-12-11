@@ -24,7 +24,8 @@ For our analysis, we will utilize the following packages:
 We will run the following code chunk to load the required packages:
 
 ```{r}
-pacman::p_load(sf, tidyverse, tmap, spdep, funModeling, ggpubr)
+pacman::p_load(sf, tidyverse, tmap, spdep, funModeling, ggpubr, corrplot, 
+               heatmaply)
 ```
 
 ### 1.1.2 Import Data
@@ -98,7 +99,6 @@ Before proceeding to the geospatial analysis, we will first prepare the data.
 We will first check if there are any duplicated areas by running the following code chunk:
 
 ```{r}
-#| eval: true
 dup <- nga$ADM2_EN[duplicated(nga$ADM2_EN)]
 dup
 ```
@@ -124,17 +124,12 @@ tm_shape(dup_areas) +
   tm_layout(legend.show = FALSE)
 
 tmap_mode("plot")
-#   tm_layout(legend.position=c("center", "center"),
-# 				design.mode =TRUE,
-# 				legend.outside = TRUE,
-# 				legend.outside.size = .3) 
 
 ```
 
 Upon searching on the web based on the information gathers in [nigeriainfopedia](https://nigerianinfopedia.com.ng/full-list-of-local-government-areas-in-nigeria/), we realized that the duplication in names exist due to areas having similar names in different state. The states at which these areas are located are as follows:
 
 ```{r}
-#| eval: true
 dup_areas_state <- nga %>%
   filter(ADM2_EN %in% dup) %>%
   select(ADM2_EN, ADM1_EN)
@@ -145,7 +140,6 @@ dup_areas_state
 Since these areas have duplicated names, it might result in an inaccurate analysis, and therefore has to be recoded by executing the following code chunk:
 
 ```{r}
-#| eval: false
 nga$ADM2_EN[nga$ADM2_EN == "Bassa" & nga$ADM1_EN == "Kogi"] <- "Bassa (Kogi)"
 nga$ADM2_EN[nga$ADM2_EN == "Bassa" & nga$ADM1_EN == "Plateau"] <- "Bassa (Plateau)"
 nga$ADM2_EN[nga$ADM2_EN == "Ifelodun" & nga$ADM1_EN == "Kwara"] <- "Ifelodun (Kwara)"
@@ -163,7 +157,6 @@ nga$ADM2_EN[nga$ADM2_EN == "Surulere" & nga$ADM1_EN == "Oyo"] <- "Surulere (Oyo)
 Check if there are duplicated in LGA names after the clean-up
 
 ```{r}
-#| eval: true
 nga$ADM2_EN[duplicated(nga$ADM2_EN)]
 ```
 
@@ -343,8 +336,7 @@ wpt_mechanized <- wp_rev %>%
   filter(water_tech == "Mechanized Pump")
 ```
 
-#### 
-1.3.3.3 Performing Point-in-Polygon Count
+#### 1.3.3.3 Performing Point-in-Polygon Count
 
 To count the number of different categories of water point techinlogies found in each LGA, we will utilize the `mutate()` function for the calculation as shown in the code:
 
@@ -358,7 +350,7 @@ nga_wp <- nga_wp %>%
 
 #### 1.3.3.4 Compute the Percentages of Hand Pump and Mechanized Pump Water Points
 
-To compute the percentages of functional and non-functional water points, we execute the following code
+To compute the percentages of functional and non-functional water points, we execute the following code:
 
 ```{r}
 nga_wp <- nga_wp %>%
@@ -393,7 +385,7 @@ nga_wp <- nga_wp %>%
 ### 
 1.3.5 Extracting Quality 
 
-#### 1.3.5.1 Different categories fo quality
+#### 1.3.5.1 Different Categories for Quality
 
 ```{r}
 freq(data=wp_rev, 
@@ -420,7 +412,7 @@ wpt_unacceptable <- wp_rev %>%
              "No because of Odour"))
 ```
 
-#### 1.3.5.3 point-in-polygon count
+#### 1.3.5.4 Performing Point-in-Polygon Count
 
 ```{r}
 nga_wp <- nga_wp %>% 
@@ -430,7 +422,7 @@ nga_wp <- nga_wp %>%
     st_intersects(nga_wp, wpt_unacceptable)))
 ```
 
-#### 1.3.5.4 Calculating percentages
+#### 1.3.5.5 Compute the Percentages of Acceptable and Unacceptable Water Quality
 
 ```{r}
 nga_wp <- nga_wp %>%
@@ -440,7 +432,7 @@ nga_wp <- nga_wp %>%
 
 ### 1.3.6 Usage Capacity
 
-#### 1.3.6.1 Visualization
+#### 1.3.6.1 Extracting Usage Capacity Data
 
 ```{r}
 freq(data=wp_rev, 
@@ -449,46 +441,46 @@ freq(data=wp_rev,
 
 We see that there are 2 groups with stubstantial number of observations which are 300 and 1000. Thus, we will recode the groups to those with less than or equal to 300 and more than 300.
 
-#### 1.3.6.2 Less than 300 or equal
+#### 1.3.6.2 Usage capacity of 300 or lesser
 
 ```{r}
-wpt_300 <- wp_rev %>%
+wpt_less300 <- wp_rev %>%
   filter(usage_capacity < 301)
 ```
 
-#### 1.3.6.3 1000
+#### 1.3.6.3 Usage capacity greater than 300
 
 ```{r}
-wpt_1000 <- wp_rev %>%
+wpt_more300 <- wp_rev %>%
   filter(usage_capacity >= 1000)
 ```
 
-#### 1.3.6.4 Point in polygon count
+#### 1.3.6.4 Performing Point-in-Polygon Count
 
 ```{r}
 nga_wp <- nga_wp %>% 
-  mutate(`wpt 300` = lengths(
-    st_intersects(nga_wp, wpt_300))) %>%
-  mutate(`wpt 1000` = lengths(
-    st_intersects(nga_wp, wpt_1000)))
+  mutate(`wpt less300` = lengths(
+    st_intersects(nga_wp, wpt_less300))) %>%
+  mutate(`wpt more300` = lengths(
+    st_intersects(nga_wp, wpt_more300)))
 ```
 
-#### 1.3.6.5 Percentages
+#### 1.3.6.5 Compute the Percentages of Usage Capacity less than or greater than 301
 
 ```{r}
 nga_wp <- nga_wp %>%
-  mutate(pct_cap300 = `wpt 300`/`total wpt`) %>%
-  mutate(pct_cap1000 = `wpt 1000`/`total wpt`)
+  mutate(pct_less300 = `wpt less300`/`total wpt`) %>%
+  mutate(pct_more300 = `wpt more300`/`total wpt`)
 ```
 
-### 1.3.7
+### 1.3.7 Saving Data
 
 We will then save the cleaned data in rds format.
 
 ```{r}
 #| echo: false
-write_rds(wp_rev, "data/wp_rev.rds")
-write_rds(nga, "data/nga.rds")
+# write_rds(wp_rev, "data/wp_rev.rds")
+# write_rds(nga, "data/nga.rds")
 write_rds(nga_wp, "data/nga_wp.rds")
 ```
 
@@ -549,25 +541,25 @@ unacceptable <- ggplot(data=nga_wp,
                  color="black", 
                  fill="light blue")
 
-cap300 <- ggplot(data=nga_wp, 
-             aes(x= `pct_cap300`)) +
+less300 <- ggplot(data=nga_wp, 
+             aes(x= `pct_less300`)) +
   geom_histogram(bins=20, 
                  color="black", 
                  fill="light blue")
 
-cap1000 <- ggplot(data=nga_wp, 
-             aes(x= `pct_cap1000`)) +
+more300 <- ggplot(data=nga_wp, 
+             aes(x= `pct_more300`)) +
   geom_histogram(bins=20, 
                  color="black", 
                  fill="light blue")
 
 ggarrange(functional, nonfunctional, hand, mechanized, acceptable, unacceptable,
-          cap300, cap1000, rural,
+          less300, more300, rural,
           ncol = 3, 
           nrow = 3)
 ```
 
-Notice that the variables *pct_acceptable*, *pct_cap300 and pct_rural* are left skewed. Whereas, variables *pct_mechanized, pct_unacceptable* and *pct_cap1000* are right-skewed.
+Notice that the variables *pct_acceptable*, *pct_cap300 and pct_rural* are skewed to the left. Whereas, variables *pct_mechanized, pct_unacceptable* and *pct_cap1000* are skewed to the right.
 
 ## 2.3 EDA using Chloropleth Map
 
@@ -664,15 +656,15 @@ Based on the percentages of acceptable water quality, we see that the the distri
 ```{r}
 tmap_mode("view")
 
-pct_cap300 <- tm_shape(nga_wp) + 
-  tm_fill("pct_cap300", palette = "BuPu") + 
+pct_less300 <- tm_shape(nga_wp) + 
+  tm_fill("pct_less300", palette = "BuPu") + 
   tm_borders()
 
-pct_cap1000 <- tm_shape(nga_wp) + 
-  tm_fill("pct_cap1000", palette = "BuPu") + 
+pct_more300 <- tm_shape(nga_wp) + 
+  tm_fill("pct_more300", palette = "BuPu") + 
   tm_borders()
 
-tmap_arrange(pct_cap300, pct_cap1000,
+tmap_arrange(pct_less300, pct_more300,
              asp = 1, ncol = 2,
              sync = TRUE)
 
@@ -680,3 +672,154 @@ tmap_mode("plot")
 ```
 
 We observe that the high percentages of usage capacity that is equal or greater than 1000 is prevalent in the southern part of Nigeria and some areas towards the extreme north-western region of Nigeria.
+
+### 2.3.7 Further Data Preparation
+
+From the above EDA, we notice that there are a number of areas in the north eastern part which seems to have missing data. This results in NAs when calculating the percentages and thus should be replaced to 0.
+
+```{r}
+nga_wp <- nga_wp %>%
+  replace(is.na(.), 0)
+```
+
+## 2.4 Multicollinearity
+
+### 2.4.1 Correlation Analysis
+
+Before we perform cluster analysis, it is important for us to ensure that the cluster variables are not highly correlated.
+
+In this section, you will learn how to use [*corrplot.mixed()*](https://cran.r-project.org/web/packages/corrplot/corrplot.pdf) function of [**corrplot**](https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html) package to visualise and analyse the correlation of the input variables.
+
+```{r}
+nga_wp2 <- nga_wp %>%
+  select(7,8,10,11,14,15,17,20,21,24,25) %>%
+  st_drop_geometry()
+
+cluster_vars.cor = cor(nga_wp2)
+corrplot.mixed(cluster_vars.cor,
+         lower = "ellipse", 
+               upper = "number",
+               tl.pos = "lt",
+               diag = "l",
+               tl.col = "black")
+```
+
+Based on the correlation value computed, the following variables have high correlation of 0.8 and above:
+
+-   pct_hand and pct_cap300
+
+-   pct_mechanized and pct_cap300
+
+-   pct_mechanized and pct_cap1000
+
+-   pct_cap300 and pct_cap1000
+
+Since these variables are highly collinear to each other, we should remove one from each pair of correlated variables.
+
+However as we are unsure on which variables to remove, we can calculate the VIF values to conclude which are the variables to be excluded.
+
+# 3 Clustering Analysis
+
+In this section, we will perform hierarchical clustering.
+
+## 3.1 Additional Data Preparation
+
+Before we even proceed with the clustering, we need to further prepare the data.
+
+### 3.1.1 Extracting clustering variables
+
+The code chunk below will be used to extract the clustering variables from the nga_wp2 simple feature object into data.frame.
+
+As hierarchical clustering does not consider geospatial data, thus it will be excluded by the code `st_set_geometry().`
+
+```{r}
+nga_clust <- nga_wp %>%
+  select(1,7,8,10,11,14,15,17,20,21) %>%
+  st_drop_geometry()
+```
+
+Notice that the final clustering variables list does not include variable pct_cap300 and pct_cap1000 because it is highly correlated with the variables pct_hand and pct \_mechanized respectively.
+
+Next, we need to change the rows by LGA instead of row number by using the code chunk below:
+
+```{r}
+row.names(nga_clust) <- nga_clust$"ADM2_EN"
+head(nga_clust,10)
+```
+
+Notice that the row number has been replaced into the LGA name. This is because hierarchical clustering does not need the LGA name. However, since we need to reference back to the LGA when we deduce the insights, thus we retain it as the rownames/ object id.
+
+Now, we will delete the *ADM2_EN* field by using the code chunk below.
+
+```{r}
+nga_clust <- select(nga_clust, c(2:10))
+head(nga_clust, 10)
+```
+
+## 3.2 Data Standardization
+
+In general, multiple variables will be used in cluster analysis. It is not unusual their values range are different. In order to avoid the cluster analysis result is baised to clustering variables with large values, it is useful to standardise the input variables before performing cluster analysis.
+
+### 3.2.1 Min-Max Standardization
+
+In the code chunk below, *normalize()* of [*heatmaply*](https://cran.r-project.org/web/packages/heatmaply/) package is used to stadardisation the clustering variables by using Min-Max method. The *summary()* is then used to display the summary statistics of the standardized clustering variables.
+
+```{r}
+nga_clust.std <- normalize(nga_clust)
+summary(nga_clust.std)
+```
+
+Notice that the values range of the Min-max standardized clustering variables are 0-1 now.
+
+### 3.2.2 **Z-SCORE STANDARDIZATION**
+
+Z-score standardization can be performed easily by using [*scale()*](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/scale) of Base R. The code chunk below will be used to stadardization the clustering variables by using Z-score method.
+
+```{r}
+nga_clust.z <- scale(nga_clust)
+describe(nga_clust.z)
+```
+
+Notice the mean and standard deviation of the Z-score standardised clustering variables are 0 and 1 respectively.
+
+**Note:** [*describe()*](https://www.rdocumentation.org/packages/Hmisc/versions/4.4-0/topics/describe) of [**psych**](https://cran.r-project.org/web/packages/psych/) package is used here instead of *summary()* of Base R because the earlier provides standard deviation.
+
+***Warning: Z-score standardisation method should only be used if we would assume all variables come from some normal distribution.***
+
+### 3.2.3 Visualizing the Standardized Clustering Variables
+
+Beside reviewing the summary statistics of the standardized clustering variables, it is also a good practice to visualize their distribution graphical.
+
+The code chunk below plot the scaled *pct_hand* field.
+
+```{r}
+r <- ggplot(data=nga_wp, 
+             aes(x= `pct_mechanized`)) +
+  geom_histogram(bins=40, 
+                 color="black", 
+                 fill="light blue")
+
+nga_clust.std_df <- as.data.frame(nga_clust.std)
+s <- ggplot(data=nga_clust.std_df, 
+       aes(x=`pct_mechanized`)) +
+  geom_histogram(bins=40, 
+                 color="black", 
+                 fill="light blue") +
+  ggtitle("Min-Max Standardisation")
+
+nga_clust.z_df <- as.data.frame(nga_clust.z)
+z <- ggplot(data=nga_clust.z_df, 
+       aes(x=`pct_mechanized`)) +
+  geom_histogram(bins=40, 
+                 color="black", 
+                 fill="light blue") +
+  ggtitle("Z-score Standardisation")
+
+ggarrange(r, s, z,
+          ncol = 1,
+          nrow = 3)
+
+
+```
+
+## 
