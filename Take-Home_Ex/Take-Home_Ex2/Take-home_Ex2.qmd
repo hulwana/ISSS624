@@ -34,8 +34,7 @@ pacman::p_load(sf, tidyverse, tmap, spdep, funModeling)
 ```{r}
 #| eval: false
 wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
-  filter(`#clean_country_name` == "Nigeria") %>%
-  select(6:10,22,26,42:47,49, 55:57,62)
+  filter(`#clean_country_name` == "Nigeria")
 ```
 
 Thing to learn from the code chunk above:
@@ -65,8 +64,8 @@ Next, `st_sf()` will be used to convert the tibble data frame into sf data frame
 
 ```{r}
 #| eval: false
-wp_sf <- st_sf(wp_nga, crs=4326) 
-wp_sf
+wp_nga <- st_sf(wp_nga, crs=4326) %>% st_transform(crs = 26391)
+wp_nga
 ```
 
 When the process completed, a new sf data frame called *wp_sf* will be created.
@@ -80,6 +79,7 @@ For the purpose of this exercise, shapefile downloaded from [geoBoundaries](http
 nga <- st_read(dsn = "data/geospatial",
                layer = "nga_admbnda_adm2_osgof_20190417",
                crs = 4326) %>%
+  st_transform(crs = 26391) %>%
   select(3:4,8:9,17)
 ```
 
@@ -160,24 +160,6 @@ Check if there are duplicated in LGA names after the clean-up
 nga$ADM2_EN[duplicated(nga$ADM2_EN)]
 ```
 
-### 1.2.2 Point in Polygon Overlay
-
-Although *wp_sf* sf data frame consists of a field called *#clean_adm2* which by right should provides the LGA name of the water point located. However, it is always a good practice to be more caution when dealing with data accuracy.
-
-In this section, we are going to use a geoprocessing function (or commonly know as GIS analysis) called **point-in-polygon overlay** to transfer the attribute information in *nga* sf data frame into *wp_sf* data frame.
-
-```{r}
-#| eval: false
-wp_sf <- st_join(wp_sf, nga) 
-```
-
-Notice that a new field called *shapeName* has been added into *wp_sf* sf data frame. as shown below.
-
-```{r}
-#| eval: false
-write_rds(wp_sf, "data/wp_sf.rds")
-```
-
 ## 1.3 Data Wrangling
 
 ### 1.3.1 Extract all the required variables and recode if needed
@@ -185,15 +167,12 @@ write_rds(wp_sf, "data/wp_sf.rds")
 Since we would like to understand if there are any relation ship on the number of functional and non-functional point, we would need to ensure that the variables required are cleaned. We will first load the data to see what are the fields present by using the `glimpse()` function.
 
 ```{r}
-wp_nga <- read_rds("data/wp_sf.rds") 
-```
-
-```{r}
 glimpse(wp_nga)
-
 ```
 
-We will first select the variables only required for our anlaysis. As we require the following for our analysis
+In total there are 71 fields each having 95,008 observations. Thus, we will select only the required columns needed for our analysis.
+
+The data required for our analysis are:
 
 -   Total number of functional water points
 
@@ -209,28 +188,35 @@ We will first select the variables only required for our anlaysis. As we require
 
 -   Percentage of rural water points
 
-We will aslo tidy the name of variables that starts with "\#"
+Thus we will:
+
+1.  Select the columns \`#water_tech_category\`, \`#status_clean\` and is_urban
+
+2.  Additional columns selected: \`#subjective_quality\` and usage_capacity
+
+3.  Tidy the name of variables that starts with "\#"
 
 ```{r}
-wp_nga_cleaned <- wp_nga %>%
-  select(5,6,13,19:23) %>%
-  rename(`water_tech` = `#water_tech_category`, `status_clean` = `#status_clean`)
-  
+#|eval: false
+wp_rev <- wp_nga %>%
+  select(10,22,26,46,47) %>%
+  rename(`water_tech` = `#water_tech_category`, `status_clean` = `#status_clean`,
+         `quality` = `#subjective_quality` )
 ```
 
 Since, we are interested to know how many functional and non-functional taps there are, we execute the following code to count the number of functional and non-functional taps as well as get the percentages of each type of taps.
 
 ```{r}
-freq(data=wp_nga_cleaned, 
+freq(data=wp_rev, 
      input = 'status_clean')
 ```
 
 #### 1.3.1.1 Recoding NA values into String
 
-We observed that there are more than 10% of NAs for this field, in which we will recode it into 'Unknown'.
+We observed that there are more than 10% of observations that are NAs for this field. Thus, we will recode it into 'Unknown'.
 
 ```{r}
-wp_nga_cleaned <- wp_nga_cleaned %>%
+wp_rev <- wp_rev %>%
    dplyr::mutate(status_clean = 
            replace_na(status_clean, "Unknown"))
 ```
@@ -250,7 +236,7 @@ We will re-group the water point categories into the following
 In the code chunk below, `filter()` of dplyr is used to select water points with unknown status.
 
 ```{r}
-wpt_unknown <- wp_nga_cleaned %>%
+wpt_unknown <- wp_rev %>%
   filter(status_clean == "Unknown")
 ```
 
@@ -267,7 +253,7 @@ We will consider the following categories as functional water points:
 -   Functional but needs repair
 
 ```{r}
-wpt_functional <- wp_nga_cleaned %>%
+wpt_functional <- wp_rev %>%
   filter(status_clean %in%
            c("Functional", 
              "Functional but not in use",
@@ -289,7 +275,7 @@ On the other hand, the following categories, will be grouped as non-functional w
 -   Non functional due to dry season
 
 ```{r}
-wpt_nonfunctional <- wp_nga_cleaned %>%
+wpt_nonfunctional <- wp_rev %>%
   filter(status_clean %in%
            c("Non-Functional",
              "Non-Functional due to dry season",
@@ -300,12 +286,12 @@ wpt_nonfunctional <- wp_nga_cleaned %>%
 
 #### 1.3.2.4 Performing Point-in-Polygon Count
 
-To count the number of different categories of water points found in each LGA, we will utilize the `mutate()` function for the calculation as shown in the code:
+To count the number of different categories of water points found by LGA, we will utilize the `mutate()` function for the calculation as shown in the code:
 
 ```{r}
 nga_wp <- nga %>% 
   mutate(`total wpt` = lengths(
-    st_intersects(nga, wp_nga_cleaned))) %>%
+    st_intersects(nga, wp_rev))) %>%
   mutate(`wpt functional` = lengths(
     st_intersects(nga, wpt_functional))) %>%
   mutate(`wpt non-functional` = lengths(
@@ -329,7 +315,7 @@ nga_wp <- nga_wp %>%
 To see what are the different types of water technology present as well as its distribution, we run the following code:
 
 ```{r}
-freq(data=wp_nga_cleaned, 
+freq(data=wp_rev, 
      input = 'water_tech')
 ```
 
@@ -338,22 +324,168 @@ Observed that the dominating type of water technology belongs to the 'Hand Pump'
 #### 1.3.3.1 Extracting Hand Pump Water Points
 
 ```{r}
-wpt_hand <- wp_nga_cleaned %>%
+wpt_hand <- wp_rev %>%
   filter(water_tech == "Hand Pump")
 ```
 
 #### 1.3.3.2 Extracting Mechanized Pump Water Points
 
 ```{r}
-wpt_mechanized <- wp_nga_cleaned %>%
+wpt_mechanized <- wp_rev %>%
   filter(water_tech == "Mechanized Pump")
 ```
 
 #### 
+1.3.3.3 Performing Point-in-Polygon Count
 
+To count the number of different categories of water point techinlogies found in each LGA, we will utilize the `mutate()` function for the calculation as shown in the code:
 
+```{r}
+nga_wp <- nga_wp %>% 
+  mutate(`wpt hand` = lengths(
+    st_intersects(nga_wp, wpt_hand))) %>%
+  mutate(`wpt mechanized` = lengths(
+    st_intersects(nga_wp, wpt_mechanized)))
+```
 
+#### 1.3.3.4 Compute the Percentages of Hand Pump and Mechanized Pump Water Points
 
+To compute the percentages of functional and non-functional water points, we execute the following code
 
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_hand = `wpt hand`/`total wpt`) %>%
+  mutate(`pct_mechanized` = `wpt mechanized`/`total wpt`)
+```
+
+### 1.3.4 Extracting Rural and Urban Areas
+
+#### 1.3.4.1 Extract data on rural areas
+
+```{r}
+wpt_rural <- wp_rev %>%
+  filter(is_urban == FALSE)
+```
+
+#### 1.3.4.2 Performing Point-in-Polygon Count
+
+```{r}
+nga_wp <- nga_wp %>% 
+  mutate(`wpt rural` = lengths(
+    st_intersects(nga_wp, wpt_rural)))
+```
+
+#### 1.3.4.3 Compute the Percentages of Rural Areas
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_rural = `wpt rural`/`total wpt`)
+```
+
+#### 
+1.3.5 Extracting Quality 
+
+#### 1.3.5.1 Different categories fo quality
+
+```{r}
+freq(data=wp_rev, 
+     input = 'quality')
+```
+
+#### 1.3.5.2 Acceptable Quality
+
+```{r}
+wpt_acceptable <- wp_rev %>%
+  filter(quality %in%
+           c("Acceptable quality", 
+             "Within National standards (potable)",
+             "Within National limits (potable)"))
+```
+
+#### 1.3.5.3 Unacceptable Quality
+
+```{r}
+wpt_unacceptable <- wp_rev %>%
+  filter(quality %in%
+           c("No because of Taste", 
+             "No because of Colour",
+             "No because of Odour"))
+```
+
+#### 1.3.5.3 point-in-polygon count
+
+```{r}
+nga_wp <- nga_wp %>% 
+  mutate(`wpt acceptable` = lengths(
+    st_intersects(nga_wp, wpt_acceptable))) %>%
+  mutate(`wpt unacceptable` = lengths(
+    st_intersects(nga_wp, wpt_unacceptable)))
+```
+
+#### 1.3.5.4 Calculating percentages
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_acceptable = `wpt acceptable`/`total wpt`) %>%
+  mutate(pct_unacceptable = `wpt unacceptable`/`total wpt`)
+```
+
+### 1.3.6 Usage Capacity
+
+#### 1.3.6.1 Visualization
+
+```{r}
+freq(data=wp_rev, 
+     input = 'usage_capacity')
+```
+
+We see that there are 2 groups with stubstantial number of observations which are 300 and 1000. Thus, we will recode the groups to those with less than or equal to 300 and more than 300.
+
+#### 1.3.6.2 Less than 300 or equal
+
+```{r}
+wpt_300 <- wp_rev %>%
+  filter(usage_capacity < 301)
+```
+
+#### 1.3.6.3 1000
+
+```{r}
+wpt_1000 <- wp_rev %>%
+  filter(usage_capacity >= 1000)
+```
+
+#### 1.3.6.4 Point in polygin count
+
+```{r}
+nga_wp <- nga_wp %>% 
+  mutate(`wpt 300` = lengths(
+    st_intersects(nga_wp, wpt_300))) %>%
+  mutate(`wpt 1000` = lengths(
+    st_intersects(nga_wp, wpt_1000)))
+```
+
+#### 1.3.6.5 Percentages
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_cap300 = `wpt 300`/`total wpt`) %>%
+  mutate(pct_cap1000 = `wpt 1000`/`total wpt`)
+```
+
+#### 
+
+```{r}
+#|echo: false
+write_rds(wp_rev, "data/wp_rev.rds")
+write_rds(nga, "data/nga.rds")
+write_rds(nga_wp, "data/nga_wp.rds")
+
+wp_rev <- read_rds("data/wp_rev.rds")
+nga<- read_rds("data/nga.rds")
+nga_wp<- read_rds("data/nga_wp.rds")
+```
+
+#### 
 
 
