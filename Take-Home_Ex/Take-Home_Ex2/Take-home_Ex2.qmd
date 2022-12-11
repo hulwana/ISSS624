@@ -3,7 +3,7 @@ title: "Take-home Exercise 2: Regionalisation of Multivariate Water Point Attrib
 author: "Hulwana"
 editor: visual
 execute: 
-  eval: false
+  eval: true
   warning: false
 ---
 
@@ -30,6 +30,12 @@ pacman::p_load(sf, tidyverse, tmap, spdep, funModeling)
 ### 1.1.2 Import Data
 
 #### 1.1.2.1 Importing water point data
+
+```{r}
+#| echo: false
+wp_rev <- read_rds("data/wp_rev.rds")
+nga_wp<- read_rds("data/nga_wp.rds")
+```
 
 ```{r}
 #| eval: false
@@ -75,7 +81,7 @@ When the process completed, a new sf data frame called *wp_sf* will be created.
 For the purpose of this exercise, shapefile downloaded from [geoBoundaries](https://www.geoboundaries.org/) portal will be used.
 
 ```{r}
-#| eval: false
+#| eval: true
 nga <- st_read(dsn = "data/geospatial",
                layer = "nga_admbnda_adm2_osgof_20190417",
                crs = 4326) %>%
@@ -92,7 +98,7 @@ Before proceeding to the geospatial analysis, we will first prepare the data.
 We will first check if there are any duplicated areas by running the following code chunk:
 
 ```{r}
-#| eval: false
+#| eval: true
 dup <- nga$ADM2_EN[duplicated(nga$ADM2_EN)]
 dup
 ```
@@ -102,7 +108,6 @@ From the above, we see that areas Bassa, Ifelodun, Irepodun, Nasarawa, Obi and S
 We will then plot the duplicated areas to determine to understand where are the areas with duplicated names
 
 ```{r}
-#| eval: false
 dup_areas <- nga %>%
   filter(ADM2_EN %in% dup) %>%
   select(ADM2_EN, geometry)
@@ -117,6 +122,8 @@ tm_shape(state_borders) +
 tm_shape(dup_areas) +
    tm_polygons("ADM2_EN", alpha = 0.08) +
   tm_layout(legend.show = FALSE)
+
+tmap_mode("plot")
 #   tm_layout(legend.position=c("center", "center"),
 # 				design.mode =TRUE,
 # 				legend.outside = TRUE,
@@ -127,7 +134,7 @@ tm_shape(dup_areas) +
 Upon searching on the web based on the information gathers in [nigeriainfopedia](https://nigerianinfopedia.com.ng/full-list-of-local-government-areas-in-nigeria/), we realized that the duplication in names exist due to areas having similar names in different state. The states at which these areas are located are as follows:
 
 ```{r}
-#| eval: false
+#| eval: true
 dup_areas_state <- nga %>%
   filter(ADM2_EN %in% dup) %>%
   select(ADM2_EN, ADM1_EN)
@@ -156,7 +163,7 @@ nga$ADM2_EN[nga$ADM2_EN == "Surulere" & nga$ADM1_EN == "Oyo"] <- "Surulere (Oyo)
 Check if there are duplicated in LGA names after the clean-up
 
 ```{r}
-#| eval: false
+#| eval: true
 nga$ADM2_EN[duplicated(nga$ADM2_EN)]
 ```
 
@@ -167,6 +174,7 @@ nga$ADM2_EN[duplicated(nga$ADM2_EN)]
 Since we would like to understand if there are any relation ship on the number of functional and non-functional point, we would need to ensure that the variables required are cleaned. We will first load the data to see what are the fields present by using the `glimpse()` function.
 
 ```{r}
+#| eval: false
 glimpse(wp_nga)
 ```
 
@@ -197,7 +205,7 @@ Thus we will:
 3.  Tidy the name of variables that starts with "\#"
 
 ```{r}
-#|eval: false
+#| eval: false
 wp_rev <- wp_nga %>%
   select(10,22,26,46,47) %>%
   rename(`water_tech` = `#water_tech_category`, `status_clean` = `#status_clean`,
@@ -480,10 +488,6 @@ nga_wp <- nga_wp %>%
 write_rds(wp_rev, "data/wp_rev.rds")
 write_rds(nga, "data/nga.rds")
 write_rds(nga_wp, "data/nga_wp.rds")
-
-wp_rev <- read_rds("data/wp_rev.rds")
-nga<- read_rds("data/nga.rds")
-nga_wp<- read_rds("data/nga_wp.rds")
 ```
 
 #### 
