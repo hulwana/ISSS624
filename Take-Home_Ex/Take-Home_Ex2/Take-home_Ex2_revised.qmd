@@ -25,7 +25,7 @@ We will run the following code chunk to load the required packages:
 
 ```{r}
 pacman::p_load(sf, tidyverse, tmap, spdep, funModeling, ggpubr, corrplot, 
-               heatmaply, cluster, factoextra)
+               heatmaply, cluster, factoextra, ClustGeo, GGally)
 ```
 
 ### 1.1.2 Import Data
@@ -902,7 +902,7 @@ Next, we can visualize the plot by using [*fviz_gap_stat()*](https://rpkgs.datan
 fviz_gap_stat(gap_stat)
 ```
 
-With reference to the gap statistic graph above, the recommended number of cluster to retain is 1. However, it is not logical to retain only one cluster. By examine the gap statistic graph, the 3-cluster gives the largest gap statistic and should be the next best cluster to pick.
+With reference to the gap statistic graph above, the recommended number of cluster to retain is 1. However, it is not logical to retain only one cluster. By examine the gap statistic graph, the 3-cluster gives the largest gap statistic and should be the next best cluster to pick. However, after the first round of clustering, restricting to 3 clusters results in a huge difference in the number of areas placed in each clusters.
 
 ```{r}
 fviz_nbclust(nga_clust, FUN = hcut, method = "silhouette")
@@ -922,7 +922,7 @@ hclust_ward <- hclust(proxmat, method = 'ward.D')
 plot(hclust_ward, cex = 0.2)
 
 rect.hclust(hclust_ward, 
-            k = 3, 
+            k = 5, 
             border = 2:5)
 ```
 
@@ -953,7 +953,7 @@ heatmaply(normalize(nga_clust_mat),
           hclust_method = "ward.D",
           seriate = "OLO",
           colors = Blues,
-          k_row = 3,
+          k_row = 5,
           margins = c(NA,200,60,NA),
           fontsize_row = 3,
           fontsize_col = 5,
@@ -967,12 +967,12 @@ Based on the heatmap above, we observe a distinct characteristic for areas that 
 
 ### 3.5.3 Mapping the Clusters Formed
 
-With closed examination of the dendragram above, we have decided to retain 3 clusters.
+With closed examination of the dendragram above, we have decided to retain 5 clusters.
 
-[*cutree()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/cutree.html) of R Base will be used in the code chunk below to derive a 3-cluster model.
+[*cutree()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/cutree.html) of R Base will be used in the code chunk below to derive a 5-cluster model.
 
 ```{r}
-groups <- as.factor(cutree(hclust_ward, k=3))
+groups <- as.factor(cutree(hclust_ward, k=5))
 ```
 
 The output is called *groups*. It is a *list* object.
@@ -989,7 +989,7 @@ The code chunk below form the join in three steps:
 
 ```{r}
 
-nga_filt <- nga %>%
+nga_filt <- nga_wp %>%
   filter(ADM2_EN %in% nga_wp$ADM2_EN)
 
 nga_sf_cluster <- cbind(nga_filt, as.matrix(groups)) %>%
@@ -1010,7 +1010,9 @@ Thus we will extend our analysis to include geospatial variables.
 
 In this section, we will derive spatially constrained cluster by using [*skater()*](https://r-spatial.github.io/spdep/reference/skater.html) method of [**spdep**](https://r-spatial.github.io/spdep/) package.
 
-## 4.1 Converting into SpatialPolygonsDataFrame
+## 4.1 Additional Data Preparation
+
+### 4.1.1 Converting into SpatialPolygonsDataFrame
 
 First, we need to convert *nga_filt* into SpatialPolygonsDataFrame. This is because SKATER function only support **sp** objects such as SpatialPolygonDataFrame.
 
@@ -1020,7 +1022,7 @@ The code chunk below uses [*as_Spatial()*](https://r-spatial.github.io/sf/refere
 nga_sp <- as_Spatial(nga_filt)
 ```
 
-## 4.2 Computing Neighbour List
+### 4.1.2 Computing Neighbour List
 
 Next, [poly2nd()](https://r-spatial.github.io/spdep/reference/poly2nb.html) of **spdep** package will be used to compute the neighbours list from polygon list.
 
@@ -1044,18 +1046,256 @@ plot(nga.nb,
 
 Note that if you plot the network first and then the boundaries, some of the areas will be clipped. This is because the plotting area is determined by the characteristics of the first plot. In this example, because the boundary map extends further than the graph, we plot it first.
 
-## 4.3 Computing Minimum Spanning Tree
+### 4.1.3 Computing Minimum Spanning Tree
 
+#### 4.1.3.1 Calculating Edge Costs
 
+Next, [*nbcosts()*](https://r-spatial.github.io/spdep/reference/nbcosts.html) of **spdep** package is used to compute the cost of each edge. It is the distance between it nodes. This function compute this distance using a data.frame with observations vector in each node.
 
-## Conclusion
+The code chunk below is used to compute the cost of each edge.
 
--   to try with other variables
+lcosts captures the cost of space between the boudaries.
 
--   to try other clustering alorithms
+```{r}
+lcosts <- nbcosts(nga.nb, nga_clust)
+```
+
+For each observation, this gives the pairwise dissimilarity between its values on the five variables and the values for the neighbouring observation (from the neighbour list). Basically, this is the notion of a generalised weight for a spatial weights matrix.
+
+Next, We will incorporate these costs into a weights object in the same way as we did in the calculation of inverse of distance weights. In other words, we convert the neighbour list to a list weights object by specifying the just computed ***lcosts*** as the weights.
+
+In order to achieve this, [*nb2listw()*](https://r-spatial.github.io/spdep/reference/nb2listw.html) of **spdep** package is used as shown in the code chunk below.
+
+Note that we specify the *style* as **B** to make sure the cost values are not row-standardised.
+
+```{r}
+nga.w <- nb2listw(nga.nb, lcosts, style="B")
+
+summary(nga.w)
+```
+
+#### 4.1.3.2 Computing mstree()
+
+The minimum spanning tree is computed by mean of the [*mstree()*](https://r-spatial.github.io/spdep/reference/mstree.html) of **spdep** package as shown in the code chunk below.
+
+```{r}
+nga.mst <- mstree(nga.w)
+```
+
+After computing the MST, we can check its class and dimension by using the code chunk below.
+
+```{r}
+class(nga.mst)
+```
+
+```{r}
+dim(nga.mst)
+```
+
+Note that the dimension is 760 and not 761. This is because the minimum spanning tree consists on n-1 edges (links) in order to traverse all the nodes.
+
+We can display the content of *nga.mst* by using *head()* as shown in the code chunk below:
+
+```{r}
+head(nga.mst)
+```
+
+The plot method for the MST include a way to show the observation numbers of the nodes in addition to the edge. As before, we plot this together with the LGA boundaries. We can see how the initial neighbour list is simplified to just one edge connecting each of the nodes, while passing through all the nodes.
+
+```{r}
+plot(nga_sp, border=gray(.5))
+plot.mst(nga.mst, 
+         coordinates(nga_sp), 
+         col="blue", 
+         cex.lab=0.3, 
+         cex.circles=0.005, 
+         add=TRUE)
+```
+
+### 4.1.4 Computing Spatially Constrained Clusters using Skater Method
+
+The code chunk below compute the spatially constrained cluster using [*skater()*](https://r-spatial.github.io/spdep/reference/skater.html) of **spdep** package.
+
+When we cut it starts from 0, thus when we specify \'ncuts = 4\' this means that we have 5 clusters.
+
+```{r}
+clust5 <- skater(edges = nga.mst[,1:2], 
+                 data = nga_clust, 
+                 method = "euclidean", 
+                 ncuts = 4)
+```
+
+The *skater()* takes three mandatory arguments: - the first two columns of the MST matrix (i.e. not the cost), - the data matrix (to update the costs as units are being grouped), and - the number of cuts. Note: It is set to **one less than the number of clusters**. So, the value specified is **not** the number of clusters, but the number of cuts in the graph, one less than the number of clusters.
+
+The result of the *skater()* is an object of class **skater**. We can examine its contents by using the code chunk below.
+
+```{r}
+str(clust5)
+```
+
+The most interesting component of this list structure is the groups vector containing the labels of the cluster to which each observation belongs (as before, the label itself is arbitary). This is followed by a detailed summary for each of the clusters in the edges.groups list. Sum of squares measures are given as ssto for the total and ssw to show the effect of each of the cuts on the overall criterion.
+
+We can check the cluster assignment by using the conde chunk below.
+
+```{r}
+ccs5 <- clust5$groups
+ccs5
+```
+
+We can find out how many observations are in each cluster by means of the table command. Parenthetially, we can also find this as the dimension of each vector in the lists contained in edges.groups.
+
+```{r}
+table(ccs5)
+```
+
+Observe that there are 480 areas under cluster 1, 179 areas under cluster 2, 18 areas under cluster 3, 53 areas under cluster 4 and 31 areas under cluster 5.
+
+Lastly, we can also plot the pruned tree that shows the 5 clusters on top of the LGA area.
+
+```{r}
+plot(nga_sp, border=gray(.5))
+plot(clust5, 
+     coordinates(nga_sp), 
+     cex.lab=.3,
+     groups.colors=c("red","yellow","green","blue","pink"),
+     cex.circles=0.005, 
+     add=TRUE)
+```
+
+### 4.1.5 Visualising the clusters in choropleth map
+
+The code chunk below is used to plot the newly derived clusters by using SKATER method.
+
+```{r}
+groups_mat <- as.matrix(clust5$groups)
+nga_sf_spatialcluster <- cbind(nga_sf_cluster, as.factor(groups_mat)) %>%
+  rename(`SP_CLUSTER`=`as.factor.groups_mat.`)
+qtm(nga_sf_spatialcluster, "SP_CLUSTER")
+```
+
+For easy comparison, it will be better to place both the hierarchical clustering and spatially constrained hierarchical clustering maps next to each other.
+
+```{r}
+hclust.map <- qtm(nga_sf_cluster,
+                  "CLUSTER") + 
+  tm_borders(alpha = 0.5) 
+
+shclust.map <- qtm(nga_sf_spatialcluster,
+                   "SP_CLUSTER") + 
+  tm_borders(alpha = 0.5) 
+
+tmap_arrange(hclust.map, shclust.map,
+             asp=NA, ncol=2)
+```
+
+# 5 Spatially Constrained Clustering: ClustGeo Method
+
+In this section, we will perform non-spatially constrained hierarchical cluster analysis and spatially constrained cluster analysis using the **ClustGeo** package.
+
+## 5.1 Ward-like hierarchical clustering: ClustGeo
+
+ClustGeo package provides function called `hclustgeo()` to perform a typical Ward-like hierarchical clustering just like `hclust()` you learned in previous section.
+
+To perform non-spatially constrained hierarchical clustering, we only need to provide the function a dissimilarity matrix as shown in the code chunk below.
+
+```{r}
+nongeo_cluster <- hclustgeo(proxmat)
+plot(nongeo_cluster, cex = 0.2)
+rect.hclust(nongeo_cluster, 
+            k = 5, 
+            border = 2:5)
+```
+
+### 5.1.1 Mapping the Clusters Formed
+
+Similarly, we can plot the clusters on a categorical area shaded map under section 3.5.3.
+
+```{r}
+groups <- as.factor(cutree(nongeo_cluster, k=5))
+
+nga_sf_ngeo_cluster <- cbind(nga_filt, as.matrix(groups)) %>%
+  rename(`CLUSTER` = `as.matrix.groups.`)
+```
+
+```{r}
+qtm(nga_sf_ngeo_cluster, "CLUSTER")
+```
+
+## 5.2 Spatially Constrained Hierarchical Clustering
+
+Before we can performed spatially constrained hierarchical clustering, a spatial distance matrix will be derived by using [`st_distance()`](https://r-spatial.github.io/sf/reference/geos_measures.html) of sf package.
+
+```{r}
+dist <- st_distance(nga_filt, nga_filt)
+distmat <- as.dist(dist)
+```
+
+Notice that `as.dist()` is used to convert the data frame into matrix.
+
+Next, `choicealpha()` will be used to determine a suitable value for the mixing parameter alpha as shown in the code chunk below.
+
+```{r}
+cr <- choicealpha(proxmat, distmat, range.alpha = seq(0, 1, 0.1), K=5, graph = TRUE)
+```
+
+With reference to the graphs above, alpha = 0.1 will be used as shown in the code chunk below.
+
+```{r}
+clustG <- hclustgeo(proxmat, distmat, alpha = 0.1)
+```
+
+Next, `cutree()` is used to derive the cluster objecct.
+
+```{r}
+groups <- as.factor(cutree(clustG, k=5))
+```
+
+We will then join back the group list with *nga_filt* polygon feature data frame by using the code chunk below.
+
+```{r}
+nga_sf_Gcluster <- cbind(nga_filt, as.matrix(groups)) %>%
+  rename(`CLUSTER` = `as.matrix.groups.`)
+```
+
+We can now plot the map of the newly delineated spatially constrained clusters.
+
+```{r}
+qtm(nga_sf_Gcluster, "CLUSTER")
+```
+
+# 6 Visual Interpretation of Clusters
+
+## 6.1 Multivariate Visualisation
+
+Past studies shown that parallel coordinate plot can be used to reveal clustering variables by cluster very effectively. In the code chunk below, [`ggparcoord()`](https://ggobi.github.io/ggally/reference/ggparcoord.html) of [**GGally**](https://ggobi.github.io/ggally/) package
+
+```{r}
+ggparcoord(data = nga_sf_ngeo_cluster, 
+           columns = c(9,10,13,16,19,20), 
+           scale = "std",
+           alphaLines = 0.1,
+           boxplot = TRUE, 
+           title = "Multiple Parallel Coordinates Plots of Water Pointa Variables by Cluster") +
+  facet_grid(~ CLUSTER) + 
+  theme(axis.text.x = element_text(angle = 45))
+```
+
+The parallel coordinate plot above reveals that Cluster 5 has the highest average for pct_functional and pct_hand and lowest average for pct_unacceptable. On the other hand, areas in Cluster 3 tend to have a lower percentage of functional water points.
+
+# 7 Conclusion
+
+The analysis above demonstrated how geospatial factors can further provide a less fragmented clustering as opposed to clustering using aspatial data only. Geospatial factors is crucial in understanding if neighbouring areas exhibit similar characteristics or behaviour. In our case, if a certain region is found to have high percentage of non-functional water points, perhaps better planning should be done for those areas and can neighbouring regions assist to provide water if the affected area faced water shortages.
+
+## 7.1 Future Work
+
+-   To explore and analyse using other combination of variables, such as staleness_score.
+
+-   To consider using other forms of clustering algorithms such as K-means.
 
 ## References
 
--   https://towardsdatascience.com/10-tips-for-choosing-the-optimal-number-of-clusters-277e93d72d92
+-   [10 Tips for Choosing the Optimal Number of Clusters](https://towardsdatascience.com/10-tips-for-choosing-the-optimal-number-of-clusters-277e93d72d92)
 
--   https://uc-r.github.io/hc_clustering
+-   [Hierarchical Cluster Analysis](https://uc-r.github.io/hc_clustering)
+
+-   [Determining The Optimal Number Of Clusters: 3 Must Know Methods](https://www.datanovia.com/en/lessons/determining-the-optimal-number-of-clusters-3-must-know-methods/)
