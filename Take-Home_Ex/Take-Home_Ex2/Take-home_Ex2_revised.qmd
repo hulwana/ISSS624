@@ -1,0 +1,1061 @@
+---
+title: "Take-home Exercise 2: Regionalisation of Multivariate Water Point Attributes with Non-spatially Constrained and Spatially Constrained Clustering Methods"
+author: "Hulwana"
+editor: visual
+execute: 
+  eval: true
+  warning: false
+---
+
+# 1 Overview
+
+The process of creating regions is called [regionalisation](https://www.researchgate.net/publication/28153673_Supervised_Regionalization_Methods_A_Survey/link/0fcfd5094046b13d35000000/download). A regionalisation is a special kind of clustering where the objective is to group observations which are similar in their statistical attributes, but also in their spatial location. In this sense, regionalization embeds the same logic as standard clustering techniques, but also applies a series of geographical constraints. Often, these constraints relate to connectivity: two candidates can only be grouped together in the same region if there exists a path from one member to another member that never leaves the region. These paths often model the spatial relationships in the data, such as contiguity or proximity. However, connectivity does not always need to hold for all regions, and in certain contexts it makes sense to relax connectivity or to impose different types of geographic constraints.
+
+# 1.1 Getting Started
+
+### 1.1.1 Load Packages
+
+For our analysis, we will utilize the following packages:
+
+-   sf - for importing and processing geospatial data,
+
+-   tidyverse - for importing and processing non-spatial data. In this exercise, readr package will be used for importing wkt data and dplyr package will be used to wrangling the data.
+
+We will run the following code chunk to load the required packages:
+
+```{r}
+pacman::p_load(sf, tidyverse, tmap, spdep, funModeling, ggpubr, corrplot, 
+               heatmaply, cluster, factoextra)
+```
+
+### 1.1.2 Import Data
+
+#### 1.1.2.1 Importing water point data
+
+```{r}
+#| echo: false
+wp_rev <- read_rds("data/wp_rev.rds")
+nga_wp<- read_rds("data/nga_wp.rds")
+```
+
+```{r}
+#| eval: false
+wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
+  filter(`#clean_country_name` == "Nigeria")
+```
+
+Thing to learn from the code chunk above:
+
+-   The original file name is called *Water_Point_Data_Exchange\_-\_PlusWPdx.csv,* it has been rename to *WPdx.csv* for easy encoding.
+
+-   Instead of using `read.csv()` of Base R to import the csv file into R, `read_csv()` is **readr** package is used. This is because during the initial data exploration, we notice that there is at least one field name with space between the field name (ie. *New Georeferenced Column*)
+
+-   The data file contains water point data of many countries. In this study, we are interested on water point in Nigeria on. Hence, `filter()` of **dplyr** is used to extract out records belong to Nigeria only.
+
+#### Convert wkt data
+
+After the data are imported into R environment, it is a good practice to review both the data structure and the data table if it is in tibble data frame format in R Studio.
+
+Notice that the newly imported tibble data frame (i.e. wp_nga) contains a field called *New Georeferenced Column* which represent spatial data in a textual format. In fact, this kind of text file is popularly known as **Well Known Text** in short **wkt**.
+
+Two steps will be used to convert an asptial data file in wkt format into a sf data frame by using sf.
+
+First, `st_as_sfc()` of sf package is used to derive a new field called *Geometry* as shown in the code chunk below.
+
+```{r}
+#| eval: false
+wp_nga$Geometry <- st_as_sfc(wp_nga$`New Georeferenced Column`)
+```
+
+Next, `st_sf()` will be used to convert the tibble data frame into sf data frame.
+
+```{r}
+#| eval: false
+wp_nga <- st_sf(wp_nga, crs=4326) %>% st_transform(crs = 26391)
+wp_nga
+```
+
+When the process completed, a new sf data frame called *wp_sf* will be created.
+
+#### 1.1.2.2 Importing Nigeria LGA level boundary data
+
+For the purpose of this exercise, shapefile downloaded from [geoBoundaries](https://www.geoboundaries.org/) portal will be used.
+
+```{r}
+nga <- st_read(dsn = "data/geospatial",
+               layer = "nga_admbnda_adm2_osgof_20190417",
+               crs = 4326) %>%
+  st_transform(crs = 26391) %>%
+  select(3:4,8:9,17)
+```
+
+## 1.2 Data Preparation
+
+Before proceeding to the geospatial analysis, we will first prepare the data.
+
+### 1.2.1 Checking duplicated area names
+
+We will first check if there are any duplicated areas by running the following code chunk:
+
+```{r}
+dup <- nga$ADM2_EN[duplicated(nga$ADM2_EN)]
+dup
+```
+
+From the above, we see that areas Bassa, Ifelodun, Irepodun, Nasarawa, Obi and Surulere have duplicated labelling.
+
+We will then plot the duplicated areas to determine to understand where are the areas with duplicated names
+
+```{r}
+dup_areas <- nga %>%
+  filter(ADM2_EN %in% dup) %>%
+  select(ADM2_EN, geometry)
+
+state_borders <- nga %>%
+  select(ADM1_EN, geometry)
+
+tmap_mode("view")
+
+tm_shape(state_borders) +
+  tm_fill("ADM1_EN") +
+tm_shape(dup_areas) +
+   tm_polygons("ADM2_EN", alpha = 0.08) +
+  tm_layout(legend.show = FALSE)
+
+tmap_mode("plot")
+
+```
+
+Upon searching on the web based on the information gathers in [nigeriainfopedia](https://nigerianinfopedia.com.ng/full-list-of-local-government-areas-in-nigeria/), we realized that the duplication in names exist due to areas having similar names in different state. The states at which these areas are located are as follows:
+
+```{r}
+dup_areas_state <- nga %>%
+  filter(ADM2_EN %in% dup) %>%
+  select(ADM2_EN, ADM1_EN)
+
+dup_areas_state
+```
+
+Since these areas have duplicated names, it might result in an inaccurate analysis, and therefore has to be recoded by executing the following code chunk:
+
+```{r}
+nga$ADM2_EN[nga$ADM2_EN == "Bassa" & nga$ADM1_EN == "Kogi"] <- "Bassa (Kogi)"
+nga$ADM2_EN[nga$ADM2_EN == "Bassa" & nga$ADM1_EN == "Plateau"] <- "Bassa (Plateau)"
+nga$ADM2_EN[nga$ADM2_EN == "Ifelodun" & nga$ADM1_EN == "Kwara"] <- "Ifelodun (Kwara)"
+nga$ADM2_EN[nga$ADM2_EN == "Ifelodun" & nga$ADM1_EN == "Osun"] <- "Ifelodun (Osun)"
+nga$ADM2_EN[nga$ADM2_EN == "Irepodun" & nga$ADM1_EN == "Kwara"] <- "Irepodun (Kwara)"
+nga$ADM2_EN[nga$ADM2_EN == "Irepodun" & nga$ADM1_EN == "Osun"] <- "Irepodun (Osun)"
+nga$ADM2_EN[nga$ADM2_EN == "Nasarawa" & nga$ADM1_EN == "Kano"] <- "Nasarawa (Kano)"
+nga$ADM2_EN[nga$ADM2_EN == "Nasarawa" & nga$ADM1_EN == "Nasarawa"] <- "Nasarawa (Nasarawa)"
+nga$ADM2_EN[nga$ADM2_EN == "Obi" & nga$ADM1_EN == "Benue"] <- "Obi (Benue)"
+nga$ADM2_EN[nga$ADM2_EN == "Obi" & nga$ADM1_EN == "Nasarawa"] <- "Obi (Nasarawa)"
+nga$ADM2_EN[nga$ADM2_EN == "Surulere" & nga$ADM1_EN == "Lagos"] <- "Surulere (Lagos)"
+nga$ADM2_EN[nga$ADM2_EN == "Surulere" & nga$ADM1_EN == "Oyo"] <- "Surulere (Oyo)"
+```
+
+Check if there are duplicated in LGA names after the clean-up
+
+```{r}
+nga$ADM2_EN[duplicated(nga$ADM2_EN)]
+```
+
+## 1.3 Data Wrangling
+
+### 1.3.1 Extract all the required variables and recode if needed
+
+Since we would like to understand if there are any relation ship on the number of functional and non-functional point, we would need to ensure that the variables required are cleaned. We will first load the data to see what are the fields present by using the `glimpse()` function.
+
+```{r}
+#| eval: false
+glimpse(wp_nga)
+```
+
+In total there are 71 fields each having 95,008 observations. Thus, we will select only the required columns needed for our analysis.
+
+The data required for our analysis are:
+
+-   Total number of functional water points
+
+-   Total number of nonfunctional water points
+
+-   Percentage of functional water points
+
+-   Percentage of non-functional water points
+
+-   Percentage of main water point technology (i.e. Hand Pump)
+
+-   Percentage of usage capacity (i.e. \< 1000, \>=1000)
+
+-   Percentage of rural water points
+
+Thus we will:
+
+1.  Select the columns \`#water_tech_category\`, \`#status_clean\` and is_urban
+
+2.  Additional columns selected: \`#subjective_quality\` and usage_capacity
+
+3.  Tidy the name of variables that starts with "\#"
+
+```{r}
+#| eval: false
+wp_rev <- wp_nga %>%
+  select(10,22,26,46,47) %>%
+  rename(`water_tech` = `#water_tech_category`, `status_clean` = `#status_clean`,
+         `quality` = `#subjective_quality` )
+```
+
+Since, we are interested to know how many functional and non-functional taps there are, we execute the following code to count the number of functional and non-functional taps as well as get the percentages of each type of taps.
+
+```{r}
+freq(data=wp_rev, 
+     input = 'status_clean')
+```
+
+#### 1.3.1.1 Recoding NA values into String
+
+We observed that there are more than 10% of observations that are NAs for this field. Thus, we will recode it into 'Unknown'.
+
+```{r}
+wp_rev <- wp_rev %>%
+   dplyr::mutate(status_clean = 
+           replace_na(status_clean, "Unknown"))
+```
+
+### 1.3.2 Extracting Water Point Data
+
+We will re-group the water point categories into the following
+
+-   Unknown
+
+-   Functional
+
+-   Non-functional
+
+#### 1.3.2.1 Extracting Water Point with Unknown Class
+
+In the code chunk below, `filter()` of dplyr is used to select water points with unknown status.
+
+```{r}
+wpt_unknown <- wp_rev %>%
+  filter(status_clean == "Unknown")
+```
+
+#### 1.3.2.2 Extracting Functional Water Point
+
+In the code chunk below, `filter()` of dplyr is used to select functional water points.
+
+We will consider the following categories as functional water points:
+
+-   Functional
+
+-   Functional but not in use
+
+-   Functional but needs repair
+
+```{r}
+wpt_functional <- wp_rev %>%
+  filter(status_clean %in%
+           c("Functional", 
+             "Functional but not in use",
+             "Functional but needs repair"))
+```
+
+#### 1.3.2.3 Extracting Non-Functional Water Point
+
+On the other hand, the following categories, will be grouped as non-functional water points:
+
+-   Non-Functional
+
+-   Non-Functional due to dry season
+
+-   Abandoned/Decommissioned
+
+-   Abandoned
+
+-   Non functional due to dry season
+
+```{r}
+wpt_nonfunctional <- wp_rev %>%
+  filter(status_clean %in%
+           c("Non-Functional",
+             "Non-Functional due to dry season",
+             "Abandoned/Decommissioned",
+             "Abandoned",
+             "Non functional due to dry season"))
+```
+
+#### 1.3.2.4 Performing Point-in-Polygon Count
+
+To count the number of different categories of water points found by LGA, we will utilize the `mutate()` function for the calculation as shown in the code:
+
+```{r}
+nga_wp <- nga %>% 
+  mutate(`total wpt` = lengths(
+    st_intersects(nga, wp_rev))) %>%
+  mutate(`wpt functional` = lengths(
+    st_intersects(nga, wpt_functional))) %>%
+  mutate(`wpt non-functional` = lengths(
+    st_intersects(nga, wpt_nonfunctional))) %>%
+  mutate(`wpt unknown` = lengths(
+    st_intersects(nga, wpt_unknown)))
+```
+
+#### 1.3.2.5 Compute the Percentages of Water Points
+
+To compute the percentages of functional and non-functional water points, we execute the following code
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_functional = `wpt functional`/`total wpt`) %>%
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`)
+```
+
+### 1.3.3 Extracting Water Technology Data
+
+To see what are the different types of water technology present as well as its distribution, we run the following code:
+
+```{r}
+freq(data=wp_rev, 
+     input = 'water_tech')
+```
+
+Observed that the dominating type of water technology belongs to the 'Hand Pump' category at 61.84% of the water point found in Nigeria. As the number of 'Mechanized Pump' is substantially large we will also consider the percentage of this type of water point technology in our analysis. The number of water points that are either 'Tapstand' and 'Rope and Bucket' is too small and thus will not be considered as a variable in our analysis.
+
+#### 1.3.3.1 Extracting Hand Pump Water Points
+
+```{r}
+wpt_hand <- wp_rev %>%
+  filter(water_tech == "Hand Pump")
+```
+
+#### 1.3.3.2 Extracting Mechanized Pump Water Points
+
+```{r}
+wpt_mechanized <- wp_rev %>%
+  filter(water_tech == "Mechanized Pump")
+```
+
+#### 1.3.3.3 Performing Point-in-Polygon Count
+
+To count the number of different categories of water point techinlogies found in each LGA, we will utilize the `mutate()` function for the calculation as shown in the code:
+
+```{r}
+nga_wp <- nga_wp %>% 
+  mutate(`wpt hand` = lengths(
+    st_intersects(nga_wp, wpt_hand))) %>%
+  mutate(`wpt mechanized` = lengths(
+    st_intersects(nga_wp, wpt_mechanized)))
+```
+
+#### 1.3.3.4 Compute the Percentages of Hand Pump and Mechanized Pump Water Points
+
+To compute the percentages of functional and non-functional water points, we execute the following code:
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_hand = `wpt hand`/`total wpt`) %>%
+  mutate(`pct_mechanized` = `wpt mechanized`/`total wpt`)
+```
+
+### 1.3.4 Extracting Rural and Urban Areas
+
+#### 1.3.4.1 Extract data on rural areas
+
+```{r}
+wpt_rural <- wp_rev %>%
+  filter(is_urban == FALSE)
+```
+
+#### 1.3.4.2 Performing Point-in-Polygon Count
+
+```{r}
+nga_wp <- nga_wp %>% 
+  mutate(`wpt rural` = lengths(
+    st_intersects(nga_wp, wpt_rural)))
+```
+
+#### 1.3.4.3 Compute the Percentages of Rural Areas
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_rural = `wpt rural`/`total wpt`)
+```
+
+### 
+
+### 1.3.5 Extracting Quality
+
+#### 1.3.5.1 Different Categories for Quality
+
+```{r}
+freq(data=wp_rev, 
+     input = 'quality')
+```
+
+#### 1.3.5.2 Acceptable Quality
+
+```{r}
+wpt_acceptable <- wp_rev %>%
+  filter(quality %in%
+           c("Acceptable quality", 
+             "Within National standards (potable)",
+             "Within National limits (potable)"))
+```
+
+#### 1.3.5.3 Unacceptable Quality
+
+```{r}
+wpt_unacceptable <- wp_rev %>%
+  filter(quality %in%
+           c("No because of Taste", 
+             "No because of Colour",
+             "No because of Odour"))
+```
+
+#### 1.3.5.4 Performing Point-in-Polygon Count
+
+```{r}
+nga_wp <- nga_wp %>% 
+  mutate(`wpt acceptable` = lengths(
+    st_intersects(nga_wp, wpt_acceptable))) %>%
+  mutate(`wpt unacceptable` = lengths(
+    st_intersects(nga_wp, wpt_unacceptable)))
+```
+
+#### 1.3.5.5 Compute the Percentages of Acceptable and Unacceptable Water Quality
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_acceptable = `wpt acceptable`/`total wpt`) %>%
+  mutate(pct_unacceptable = `wpt unacceptable`/`total wpt`)
+```
+
+### 1.3.6 Usage Capacity
+
+#### 1.3.6.1 Extracting Usage Capacity Data
+
+```{r}
+freq(data=wp_rev, 
+     input = 'usage_capacity')
+```
+
+We see that there are 2 groups with stubstantial number of observations which are 300 and 1000. Thus, we will recode the groups to those with less than or equal to 300 and more than 300.
+
+#### 1.3.6.2 Usage capacity of 300 or lesser
+
+```{r}
+wpt_less300 <- wp_rev %>%
+  filter(usage_capacity < 301)
+```
+
+#### 1.3.6.3 Usage capacity greater than 300
+
+```{r}
+wpt_more300 <- wp_rev %>%
+  filter(usage_capacity > 300)
+```
+
+#### 1.3.6.4 Performing Point-in-Polygon Count
+
+```{r}
+nga_wp <- nga_wp %>% 
+  mutate(`wpt less300` = lengths(
+    st_intersects(nga_wp, wpt_less300))) %>%
+  mutate(`wpt more300` = lengths(
+    st_intersects(nga_wp, wpt_more300)))
+```
+
+#### 1.3.6.5 Compute the Percentages of Usage Capacity less than or greater than 301
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_less300 = `wpt less300`/`total wpt`) %>%
+  mutate(pct_more300 = `wpt more300`/`total wpt`)
+```
+
+### 1.3.7 Saving Data
+
+We will then save the cleaned data in rds format.
+
+```{r}
+#| echo: false
+# write_rds(wp_rev, "data/wp_rev.rds")
+# write_rds(nga, "data/nga.rds")
+write_rds(nga_wp, "data/nga_wp.rds")
+```
+
+# 2 Exploratory Data Analysis
+
+## 2.1 Summary Statistics
+
+Let us review the summary statistics of the newly derived penetration rates using the code chunk below.
+
+```{r}
+summary(nga_wp)
+```
+
+## 2.2 EDA using Histogram
+
+Here, we take a look at the distribution of the percentages variable
+
+```{r}
+functional <- ggplot(data=nga_wp, 
+             aes(x= `pct_functional`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+nonfunctional <- ggplot(data=nga_wp, 
+             aes(x= `pct_non-functional`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+hand <- ggplot(data=nga_wp, 
+             aes(x= `pct_hand`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+mechanized <- ggplot(data=nga_wp, 
+             aes(x= `pct_mechanized`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+rural <- ggplot(data=nga_wp, 
+             aes(x= `pct_rural`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+acceptable <- ggplot(data=nga_wp, 
+             aes(x= `pct_acceptable`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+unacceptable <- ggplot(data=nga_wp, 
+             aes(x= `pct_unacceptable`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+less300 <- ggplot(data=nga_wp, 
+             aes(x= `pct_less300`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+more300 <- ggplot(data=nga_wp, 
+             aes(x= `pct_more300`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+ggarrange(functional, nonfunctional, hand, mechanized, acceptable, unacceptable,
+          less300, more300, rural,
+          ncol = 3, 
+          nrow = 3)
+```
+
+Notice that the variables *pct_acceptable*, *pct_cap300 and pct_rural* are skewed to the left. Whereas, variables *pct_mechanized, pct_unacceptable* and *pct_cap1000* are skewed to the right.
+
+## 2.3 EDA using Choropleth Map
+
+### 2.3.1 Total Waterpoints
+
+```{r}
+qtm(nga_wp, "total wpt")
+```
+
+From the above map, we notice that there are a number of areas in the north-eastern part of Nigeria in which there 0 data on the number of water points.
+
+### 2.3.2 Distribution of Functional and Non-functional Water Points by Percentages
+
+```{r}
+tmap_mode("view")
+
+pct_functional <- tm_shape(nga_wp) + 
+  tm_fill("pct_functional") + 
+  tm_borders() 
+
+pct_nonfunctional <- tm_shape(nga_wp) + 
+  tm_fill("pct_non-functional") + 
+  tm_borders() 
+
+tmap_arrange(pct_functional, pct_nonfunctional,
+             asp = 1, ncol = 2,
+             sync = TRUE)
+
+tmap_mode("plot")
+```
+
+In terms of functional water points, areas in the northern region have high percentages in comparison to other parts in Nigeria, while in terms of non-functional water points, areas in southern part of Nigeria have higher percentages.
+
+### 2.3.3 Distribution of Hand Pump and Mechanized Pump
+
+```{r}
+tmap_mode("view")
+
+pct_hand <- tm_shape(nga_wp) + 
+  tm_fill("pct_hand", palette = "BuGn") + 
+  tm_borders() 
+
+pct_mechanized <- tm_shape(nga_wp) + 
+  tm_fill("pct_mechanized", palette = "BuGn") + 
+  tm_borders() 
+
+tmap_arrange(pct_hand, pct_mechanized,
+             asp = 1, ncol = 2,
+             sync = TRUE)
+
+tmap_mode("plot")
+```
+
+We see a similar trend to that of the distribution of functional and non-functional water points, where the norther regions of Nigeria tend to have higher percentages of hand pump but lower percentage of mechanized pump whereas southern regions of Nigeria tended to have higher percentages of mechanized pumps but lower percentages of hand pumps. Perhaps this could be attributed to the technology and development of the different regions and therefore we shouldl proceed to look if there is a similar trend in terms of rural and urban areas.
+
+### 2.3.4 Distribution of Rural Areas by Percentages
+
+```{r}
+tmap_mode("view")
+
+tm_shape(nga_wp) + 
+  tm_fill("pct_rural", palette = "YlGn") + 
+  tm_borders(col = "black", lwd = 2)
+
+tmap_mode("plot")
+```
+
+Surprisingly, in terms of percentage of rural areas, it is almost homogeneous throughout Nigeria.
+
+### 2.3.5 Distribution of Water Quality by Percentages
+
+```{r}
+tmap_mode("view")
+
+pct_accept <- tm_shape(nga_wp) + 
+  tm_fill("pct_acceptable", palette = "Blues") + 
+  tm_borders()
+
+pct_unaccept <- tm_shape(nga_wp) + 
+  tm_fill("pct_unacceptable", palette = "Blues") + 
+  tm_borders()
+
+tmap_arrange(pct_accept, pct_unaccept,
+             asp = 1, ncol = 2,
+             sync = TRUE)
+
+tmap_mode("plot")
+```
+
+Based on the percentages of acceptable water quality, we see that the the distribution is also quite homogeneous among the areas in Nigeria with majority having high percentage of acceptable water quality.
+
+### 2.3.6 Distribution of Usage Capacity
+
+```{r}
+tmap_mode("view")
+
+pct_less300 <- tm_shape(nga_wp) + 
+  tm_fill("pct_less300", palette = "BuPu") + 
+  tm_borders()
+
+pct_more300 <- tm_shape(nga_wp) + 
+  tm_fill("pct_more300", palette = "BuPu") + 
+  tm_borders()
+
+tmap_arrange(pct_less300, pct_more300,
+             asp = 1, ncol = 2,
+             sync = TRUE)
+
+tmap_mode("plot")
+```
+
+We observe that the high percentages of usage capacity that is equal or greater than 1000 is prevalent in the southern part of Nigeria and some areas towards the extreme north-western region of Nigeria.
+
+### 2.3.7 Further Data Preparation
+
+From the above EDA, we notice that there are a number of areas in the north eastern part which seems to have missing water point data. To tackle this issue, we have 2 possible approaches by either
+
+1.  excluding those with unknown or missing data points from the analysis or
+
+2.  to impute an estimated value.
+
+In our case, as the observations with NAs stems from no water point data for most of the fields (functional water points, usage capacity, etc.) we will omit these observations so as to obtain a more accurate analysis.
+
+```{r}
+nga_wp <- nga_wp %>%
+  filter(`total wpt` > 0)
+```
+
+## 2.4 Multicollinearity
+
+### 2.4.1 Correlation Analysis
+
+Before we perform cluster analysis, it is important for us to ensure that the cluster variables are not highly correlated.
+
+In this section, you will learn how to use [*corrplot.mixed()*](https://cran.r-project.org/web/packages/corrplot/corrplot.pdf) function of [**corrplot**](https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html) package to visualise and analyse the correlation of the input variables.
+
+```{r}
+nga_wp2 <- nga_wp %>%
+  select(7,8,10,11,14,15,17,20,21,24,25) %>%
+  st_drop_geometry()
+
+cluster_vars.cor = cor(nga_wp2)
+corrplot.mixed(cluster_vars.cor,
+         lower = "ellipse", 
+               upper = "number",
+               tl.pos = "lt",
+               diag = "l",
+               tl.col = "black")
+```
+
+Based on the correlation value computed, the following variables have high correlation of 0.8 and above:
+
+-   pct_hand and pct_mechanized
+
+-   pct_hand and pct_less300
+
+-   pct_hand and pct_more300
+
+-   pct_mechanized and pct_less300
+
+-   pct_mechanized and pct_more300
+
+-   pct_less300 and pct_more300
+
+Since these variables are highly correlated to each other, we should remove one from each pair of correlated variables. In our case, we will exclude the variables pct_mechanized, pct_less300 and pct_more 300.
+
+# 3 Clustering Analysis
+
+In this section, we will perform hierarchical clustering.
+
+## 3.1 Additional Data Preparation
+
+Before we even proceed with the clustering, we need to further prepare the data.
+
+### 3.1.1 Extracting clustering variables
+
+The code chunk below will be used to extract the clustering variables from the nga_wp2 simple feature object into data.frame.
+
+As hierarchical clustering does not consider geospatial data, thus it will be excluded by the code `st_set_geometry().`
+
+```{r}
+nga_clust <- nga_wp %>%
+  select(1,7,8,10,11,14,17,20,21) %>%
+  st_drop_geometry()
+```
+
+Notice that the final clustering variables list does not include variable pct_cap300 and pct_cap1000 because it is highly correlated with the variables pct_hand and pct \_mechanized respectively.
+
+Next, we need to change the rows by LGA instead of row number by using the code chunk below:
+
+```{r}
+row.names(nga_clust) <- nga_clust$"ADM2_EN"
+head(nga_clust,10)
+```
+
+Notice that the row number has been replaced into the LGA name. This is because hierarchical clustering does not need the LGA name. However, since we need to reference back to the LGA when we deduce the insights, thus we retain it as the rownames/ object id.
+
+Now, we will delete the *ADM2_EN* field by using the code chunk below.
+
+```{r}
+nga_clust <- select(nga_clust, c(2:9))
+head(nga_clust, 10)
+```
+
+## 3.2 Data Standardization
+
+In general, multiple variables will be used in cluster analysis. It is not unusual their values range are different. In order to avoid the cluster analysis result is baised to clustering variables with large values, it is useful to standardise the input variables before performing cluster analysis.
+
+### 3.2.1 Min-Max Standardization
+
+In the code chunk below, *normalize()* of [*heatmaply*](https://cran.r-project.org/web/packages/heatmaply/) package is used to stadardisation the clustering variables by using Min-Max method. The *summary()* is then used to display the summary statistics of the standardized clustering variables.
+
+```{r}
+nga_clust.std <- normalize(nga_clust)
+summary(nga_clust.std)
+```
+
+Notice that the values range of the Min-max standardized clustering variables are 0-1 now.
+
+### 3.2.2 **Z-SCORE STANDARDIZATION**
+
+Z-score standardization can be performed easily by using [*scale()*](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/scale) of Base R. The code chunk below will be used to stadardization the clustering variables by using Z-score method.
+
+```{r}
+nga_clust.z <- scale(nga_clust)
+describe(nga_clust.z)
+```
+
+Notice the mean and standard deviation of the Z-score standardised clustering variables are 0 and 1 respectively.
+
+**Note:** [*describe()*](https://www.rdocumentation.org/packages/Hmisc/versions/4.4-0/topics/describe) of [**psych**](https://cran.r-project.org/web/packages/psych/) package is used here instead of *summary()* of Base R because the earlier provides standard deviation.
+
+***Warning: Z-score standardisation method should only be used if we would assume all variables come from some normal distribution.***
+
+### 3.2.3 Visualizing the Standardized Clustering Variables
+
+Beside reviewing the summary statistics of the standardized clustering variables, it is also a good practice to visualize their distribution graphical.
+
+The code chunk below plot the scaled *pct_hand* field.
+
+```{r}
+r <- ggplot(data=nga_clust, 
+             aes(x= `pct_acceptable`)) +
+  geom_histogram(bins=40, 
+                 color="black", 
+                 fill="light blue")
+
+nga_clust.std_df <- as.data.frame(nga_clust.std)
+s <- ggplot(data=nga_clust.std_df, 
+       aes(x=`pct_acceptable`)) +
+  geom_histogram(bins=40, 
+                 color="black", 
+                 fill="light blue") +
+  ggtitle("Min-Max Standardisation")
+
+nga_clust.z_df <- as.data.frame(nga_clust.z)
+z <- ggplot(data=nga_clust.z_df, 
+       aes(x=`pct_acceptable`)) +
+  geom_histogram(bins=40, 
+                 color="black", 
+                 fill="light blue") +
+  ggtitle("Z-score Standardisation")
+
+ggarrange(r, s, z,
+          ncol = 1,
+          nrow = 3)
+
+
+```
+
+As the field *pct_acceptable* already has values bounded by 0 and 1, we see that histogram for min-max standardization is very similar to that of the histogram of the without scalling. We also noticed that the histogram for Z-score standardization does not differ significantly to that of the original percentage values. This is because the percentages have small ranges and thus standardization has very little impact on spreading of the data.
+
+## 3.3 Computing Proximity Matrix
+
+In R, many packages provide functions to calculate distance matrix. We will compute the proximity matrix by using [*dist()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/dist.html) of R.
+
+*dist()* supports six distance proximity calculations, they are: **euclidean, maximum, manhattan, canberra, binary and minkowski**. The default is *euclidean* proximity matrix.
+
+The code chunk below is used to compute the proximity matrix using *euclidean* method.
+
+```{r}
+proxmat <- dist(nga_clust, method = 'euclidean')
+```
+
+## 3.4 Computing Hierarchical Clustering
+
+### 3.4.1 Selecting the Optimal Clustering Algorithm
+
+One of the challenge in performing hierarchical clustering is to identify stronger clustering structures. The issue can be solved by using use [*agnes()*](https://www.rdocumentation.org/packages/cluster/versions/2.1.0/topics/agnes) function of [**cluster**](https://cran.r-project.org/web/packages/cluster/) package. It functions like *hclus()*, however, with the *agnes()* function you can also get the agglomerative coefficient, which measures the amount of clustering structure found (values closer to 1 suggest strong clustering structure).
+
+The code chunk below will be used to compute the agglomerative coefficients of all hierarchical clustering algorithms.
+
+```{r}
+m <- c( "average", "single", "complete", "ward")
+names(m) <- c( "average", "single", "complete", "ward")
+
+ac <- function(x) {
+  agnes(nga_clust, method = x)$ac
+}
+
+map_dbl(m, ac)
+```
+
+With reference to the output above, we can see that Ward's method provides the strongest clustering structure among the four methods assessed. Hence, in the subsequent analysis, only Ward's method will be used.
+
+### 3.4.2 Determining Optimal Clusters
+
+Another technical challenge face by data analyst in performing clustering analysis is to determine the optimal clusters to retain.
+
+There are [three](https://www.datanovia.com/en/lessons/determining-the-optimal-number-of-clusters-3-must-know-methods/) commonly used methods to determine the optimal clusters, they are:
+
+-   [Elbow Method](https://en.wikipedia.org/wiki/Elbow_method_(clustering))
+
+-   [Average Silhouette Method](https://www.sciencedirect.com/science/article/pii/0377042787901257?via%3Dihub)
+
+-   [Gap Statistic Method](https://statweb.stanford.edu/~gwalther/gap)
+
+#### 3.4.2.1 Gap Statistic Method
+
+The [**gap statistic**](http://www.web.stanford.edu/~hastie/Papers/gap.pdf) compares the total within intra-cluster variation for different values of k with their expected values under null reference distribution of the data. The estimate of the optimal clusters will be value that maximize the gap statistic (i.e., that yields the largest gap statistic). This means that the clustering structure is far away from the random uniform distribution of points.
+
+To compute the gap statistic, [*clusGap()*](https://www.rdocumentation.org/packages/cluster/versions/2.1.0/topics/clusGap) of [**cluster**](https://cran.r-project.org/web/packages/cluster/) package will be used.
+
+```{r}
+set.seed(1234)
+gap_stat <- clusGap(nga_clust, 
+                    FUN = hcut, 
+                    nstart = 25, 
+                    K.max = 10, 
+                    B = 50)
+
+print(gap_stat, method = "firstmax")
+```
+
+Also note that the [*hcut*](https://rpkgs.datanovia.com/factoextra/reference/hcut.html) function used is from [**factoextra**](https://rpkgs.datanovia.com/factoextra/) package.
+
+Next, we can visualize the plot by using [*fviz_gap_stat()*](https://rpkgs.datanovia.com/factoextra/reference/fviz_nbclust.html) of [**factoextra**](https://rpkgs.datanovia.com/factoextra/) package.
+
+```{r}
+fviz_gap_stat(gap_stat)
+```
+
+With reference to the gap statistic graph above, the recommended number of cluster to retain is 1. However, it is not logical to retain only one cluster. By examine the gap statistic graph, the 3-cluster gives the largest gap statistic and should be the next best cluster to pick.
+
+```{r}
+fviz_nbclust(nga_clust, FUN = hcut, method = "silhouette")
+```
+
+### 3.4.3 Interpreting the Dendograms
+
+In dendrograms, each leaf corresponds to one observation. As we move up the tree, observations that are similar to each other are combined into branches, which are themselves fused at a higher height.
+
+The height of the fusion, provided on the vertical axis, indicates the (dis)similarity between two observations. The higher the height of the fusion, the less similar the observations are. Note that, conclusions about the proximity of two observations can be drawn only based on the height where branches containing those two observations first are fused. We cannot use the proximity of two observations along the horizontal axis as a criteria of their similarity.
+
+It's also possible to draw the dendrogram with a border around the selected clusters by using [*rect.hclust()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/rect.hclust.html) of R stats. The argument *border* is used to specify the border colors for the rectangles.
+
+```{r}
+hclust_ward <- hclust(proxmat, method = 'ward.D')
+
+plot(hclust_ward, cex = 0.2)
+
+rect.hclust(hclust_ward, 
+            k = 3, 
+            border = 2:5)
+```
+
+## 3.5 Visually-driven Hierarchical Clustering Analysis
+
+In this section, we will perform visually-driven hiearchical clustering analysis by using [*heatmaply*](https://cran.r-project.org/web/packages/heatmaply/) package.
+
+With **heatmaply**, we are able to build both highly interactive cluster heatmap or static cluster heatmap.
+
+### 3.5.1 Transforming the Data Frame into a Matrix
+
+The data was loaded into a data frame, but it has to be a data matrix to make your heatmap.
+
+The code chunk below will be used to transform *nga_clust* data frame into a data matrix.
+
+```{r}
+nga_clust_mat <- data.matrix(nga_clust)
+```
+
+### 3.5.2 Plotting Interactive Cluster Heatmap using heatmaply()
+
+In the code chunk below, the [*heatmaply()*](https://talgalili.github.io/heatmaply/reference/heatmaply.html) of [heatmaply](https://talgalili.github.io/heatmaply/) package is used to build an interactive cluster heatmap.
+
+```{r}
+heatmaply(normalize(nga_clust_mat),
+          Colv=NA,
+          dist_method = "euclidean",
+          hclust_method = "ward.D",
+          seriate = "OLO",
+          colors = Blues,
+          k_row = 3,
+          margins = c(NA,200,60,NA),
+          fontsize_row = 3,
+          fontsize_col = 5,
+          main="Geographic Segmentation of Nigeria LGA by water ponits indicators",
+          xlab = "Water Point Indicators",
+          ylab = "Nigeria LGA"
+          )
+```
+
+Based on the heatmap above, we observe a distinct characteristic for areas that are grouped under the green branch is that they generally have a higher percentage of unacceptable quality of water. Those that are labeled under the pink branch have high percentage of acceptable water quality, moderate to high percentage of functional water points and low percentage of rural space.
+
+### 3.5.3 Mapping the Clusters Formed
+
+With closed examination of the dendragram above, we have decided to retain 3 clusters.
+
+[*cutree()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/cutree.html) of R Base will be used in the code chunk below to derive a 3-cluster model.
+
+```{r}
+groups <- as.factor(cutree(hclust_ward, k=3))
+```
+
+The output is called *groups*. It is a *list* object.
+
+In order to visualize the clusters, the *groups* object need to be appended onto *nga* simple feature object.
+
+The code chunk below form the join in three steps:
+
+-   the *groups* list object will be converted into a matrix;
+
+-   *cbind()* is used to append *groups* matrix onto nga to produce an output simple feature object called `nga_sf_cluster`; and
+
+-   *rename* of **dplyr** package is used to rename *as.matrix.groups* field as *CLUSTER*.
+
+```{r}
+
+nga_filt <- nga %>%
+  filter(ADM2_EN %in% nga_wp$ADM2_EN)
+
+nga_sf_cluster <- cbind(nga_filt, as.matrix(groups)) %>%
+  rename(`CLUSTER`=`as.matrix.groups.`)
+```
+
+Next, *qtm()* of **tmap** package is used to plot the choropleth map showing the cluster formed.
+
+```{r}
+qtm(nga_sf_cluster, "CLUSTER")
+```
+
+From the choropleth map, noticed that the clusters are dispersed all over Nigeria. This is perhaps due to the fact that no geospatial factors were considered when analyzing using hierarchical clustering algorithm.
+
+Thus we will extend our analysis to include geospatial variables.
+
+# 4 Spatially Constrained Clustering-skater Approach
+
+In this section, we will derive spatially constrained cluster by using [*skater()*](https://r-spatial.github.io/spdep/reference/skater.html) method of [**spdep**](https://r-spatial.github.io/spdep/) package.
+
+## 4.1 Converting into SpatialPolygonsDataFrame
+
+First, we need to convert *nga_filt* into SpatialPolygonsDataFrame. This is because SKATER function only support **sp** objects such as SpatialPolygonDataFrame.
+
+The code chunk below uses [*as_Spatial()*](https://r-spatial.github.io/sf/reference/coerce-methods.html) of **sf** package to convert *shan_sf* into a SpatialPolygonDataFrame called *nga_sp*.
+
+```{r}
+nga_sp <- as_Spatial(nga_filt)
+```
+
+## 4.2 Computing Neighbour List
+
+Next, [poly2nd()](https://r-spatial.github.io/spdep/reference/poly2nb.html) of **spdep** package will be used to compute the neighbours list from polygon list.
+
+```{r}
+nga.nb <- poly2nb(nga_sp)
+summary(nga.nb)
+```
+
+The above report indicates that there are 4 areas with only 1 neighbour and the average number of neigbours is approximately 6 (\~5.713535). Area 496 has the most number of neighbours which is 14.
+
+We can plot the neighbours list on nga_sp by using the code chunk below. Since we now can plot the community area boundaries as well, we plot this graph on top of the map. The first plot command gives the boundaries. This is followed by the plot of the neighbor list object, with coordinates applied to the original SpatialPolygonDataFrame (Nigeria LGA boundaries) to extract the centroids of the polygons. These are used as the nodes for the graph representation. We also set the color to blue and specify add=TRUE to plot the network on top of the boundaries.
+
+```{r}
+plot(nga_sp, 
+     border=grey(.5))
+plot(nga.nb, 
+     coordinates(nga_sp), 
+     col="blue", 
+     add=TRUE)
+```
+
+Note that if you plot the network first and then the boundaries, some of the areas will be clipped. This is because the plotting area is determined by the characteristics of the first plot. In this example, because the boundary map extends further than the graph, we plot it first.
+
+## 4.3 Computing Minimum Spanning Tree
+
+
+
+## Conclusion
+
+-   to try with other variables
+
+-   to try other clustering alorithms
+
+## References
+
+-   https://towardsdatascience.com/10-tips-for-choosing-the-optimal-number-of-clusters-277e93d72d92
+
+-   https://uc-r.github.io/hc_clustering
