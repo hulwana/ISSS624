@@ -1,0 +1,350 @@
+---
+title: "In-class Ex 5"
+author: "Hulwana"
+editor: visual
+---
+
+# 1 Overview
+
+To build explanatory model to discover factor affecting water points status at Osun state. We will focus only on functional and non-functional water points data and exclude unknown water points.
+
+## 1.1 Load the Packages
+
+For our analysis, we will utilize the following packages:
+
+1.  Data Wrangling:
+
+-   [sf](https://r-spatial.github.io/sf/) - for importing and processing geospatial data,
+
+-   [tidyverse](https://www.tidyverse.org/) - for importing and processing non-spatial data. In this exercise, readr package will be used for importing wkt data and dplyr package will be used to wrangling the data,
+
+2.  Visualisation:
+
+-   [tmap](https://r-tmap.github.io/tmap/) - for preparation of cartographic quality choropleth map,
+
+-   [funModeling](https://cran.r-project.org/web/packages/funModeling/vignettes/funModeling_quickstart.html) - for rapid Exploratory Data Analysis,
+
+-   [ggpubr](https://rpkgs.datanovia.com/ggpubr/) - for creating and customizing \'ggplot2\'- based publication ready plots,
+
+-   [corrplot](https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html) - visual exploratory tool on correlation matrix that supports automatic variable reordering to help detect hidden patterns among variables,
+
+-   skimr - for us to do EDA
+
+3.  Correlation and Clustering Analysis:
+
+-   [spdep](https://r-spatial.github.io/spdep/) - for computation of spatial weights, global and local spatial autocorrelation statistics,
+
+-   blorr - for logistic regression
+
+-   caret - designed for machine learning purposes, in our case we will use it to do our logistic regression
+
+We will run the following code chunk to load the required packages:
+
+```{r}
+pacman::p_load(sf, tidyverse, tmap, spdep, funModeling, ggpubr, corrplot, 
+               heatmaply, cluster, blorr, GWmodel, skimr, caret)
+```
+
+## 1.2 Load the Data
+
+For Osun we will retain ADM2_EN, ADM2_PCODE, ADM1_EN and ADM1_PCODE to retain the LGA and state.
+
+Osun_wp_sf contains 4760 observations and thus sufficient number of data to do our logistic regression.
+
+Field names with '\#' has also been cleaned up prior to the load.
+
+Unknown water points also have been excluded.
+
+A new field called 'status' has been created from the variable 'status_clean' by mutating it either to T or F
+
+when it is classified under functional or non-functional water points respectively.
+
+```{r}
+Osun <- read_rds("rds/Osun.rds")
+Osun_wp_sf <- read_rds("rds/Osun_wp_sf.rds")
+```
+
+## 1.3 EDA
+
+```{r}
+Osun_wp_sf %>% freq(input = 'status')
+
+```
+
+Observe that this region has a relatively high proportion of non-functional water points at 44.5% which is higher than the average proportion of non-functional water points of 22.5% across regions in Nigeria.
+
+### 1.3.1 Summary Statistics with skimr
+
+In logisticregression model, if there is at least one missing value that observation will be excluded from the analysis. Additionally, if there are a high proportion of missing values (even if it at 20%), then we should not use that variable even if that variable might be a useful field in our analysis.
+
+Skimr enables us to retain the table into tibble form. We will get 4 output tables.
+
+The first table it summarises the number of rows and columns, and the number of different data types.
+
+The second report provides information on how many missing values, the percentage number of data not missing, the min and max values.
+
+We see that water_point_population and local_population_1km has 4 missing data points.
+
+```{r}
+Osun_wp_sf %>% skim()
+```
+
+### 1.3.2 Remove Missing Values based on certain variables
+
+-   Exclude all the missing values for the relevant fields. We will 4 observation values less due to the missing value in water_point_population and local_population_1km.
+
+-   Recode the usage capacity from numerical to factor/categorical. As the usage capacity consists of discrete values mainly those with usage capacity of 300 and 1000.
+
+```{r}
+Osun_wp_sf_clean <- Osun_wp_sf %>%
+  filter_at(vars(status,
+                 distance_to_primary_road,
+                 distance_to_secondary_road,
+                 distance_to_tertiary_road,
+                 distance_to_city,
+                 distance_to_town,
+                 water_point_population,
+                 local_population_1km,
+                 usage_capacity,
+                 is_urban,
+                 water_source_clean),
+            all_vars(!is.na(.)))  %>%
+  mutate(usage_capacity = as.factor(usage_capacity))
+```
+
+### 1.3.3 Correlation Analysis
+
+When we deal with spatial data and want to plot the correlation matrix, we need to drop the geometric column.
+
+```{r}
+Osun_wp <- Osun_wp_sf_clean %>%
+  select(c(7,35:39,42:43,46:47,57)) %>%
+  st_set_geometry(NULL)
+```
+
+Plotting the correlation matrix.
+
+```{r}
+cluster_vars.cor = cor(Osun_wp[,2:7])
+
+corrplot.mixed(cluster_vars.cor,
+               lower = "ellipse",
+               upper = "number",
+               tl.pos = "lt",
+               diag = "l",
+               tl.col = "black")
+```
+
+```{r}
+model <- glm(status ~ distance_to_primary_road + 
+               distance_to_secondary_road +
+               distance_to_tertiary_road +
+               distance_to_city +
+               distance_to_town +
+               is_urban +
+               usage_capacity +
+               water_source_clean +
+               water_point_population +
+               local_population_1km,
+             data = Osun_wp_sf_clean,
+             family = binomial(link = 'logit'))
+```
+
+To look at the report, we use the `blr_regress()` function from **blorr** package to convert
+
+```{r}
+blr_regress(model)
+```
+
+We observe that the variables *distance_to_primary_road* and *distance_to_secondary_road* has a p-value greater than a significance level of 0.05 and thus should be excluded since they are not statistically significant.
+
+For categorical variables, a positive value implies an above average correlation and a negative value implies a below average correlation.
+
+We need a separate call, to assess how the overall model work.
+
+We assign a cutoff value of 0.5.
+
+Results:
+
+Overall accuracy is 0.6739
+
+We see that the Sensitivity is higher than Specificity as there are more true positive than true negative.
+
+```{r}
+blr_confusion_matrix(model, cutoff = 0.5)
+```
+
+Can we improve the model by incorporating geospatial factors?
+
+# 2 Geographically weighted regression
+
+## 2.1 SP dataframe
+
+We will first need to a spatial point dataframe. We used the cleaned version that removes the 4 records with missing value as when we callibrate the missing value would disappear but the geometric polygons will retian and this will result in error.
+
+```{r}
+Osun_wp_sp <- Osun_wp_sf_clean %>%
+  select(c(status,
+           distance_to_primary_road, 
+           distance_to_secondary_road,
+           distance_to_tertiary_road,
+           distance_to_city,
+           distance_to_town,
+           water_point_population,
+           local_population_1km,
+           is_urban,
+           usage_capacity,
+           water_source_clean)) %>%
+  as_Spatial()
+
+Osun_wp_sp
+
+```
+
+## 2.2 Fixed distance matrix
+
+We set longlat as FALSE as we already have converted it into projected coordinated system.
+
+```{r}
+#| eval: false
+bw.fixed <- bw.ggwr(status ~ distance_to_primary_road + 
+               distance_to_secondary_road +
+               distance_to_tertiary_road +
+               distance_to_city +
+               distance_to_town +
+               water_point_population +
+               local_population_1km +
+               is_urban +
+               usage_capacity +
+               water_source_clean,
+               data = Osun_wp_sp,
+               family = "binomial",
+               approach = "AIC",
+               kernel = "gaussian",
+               adaptive = FALSE,
+               longlat = FALSE)
+```
+
+```{r}
+#| eval: false
+bw.fixed
+```
+
+## 2.3 Geograhically weighted regression model
+
+```{r}
+gwlr.fixed <- ggwr.basic(status ~
+               distance_to_primary_road + 
+               distance_to_secondary_road +
+               distance_to_tertiary_road +
+               distance_to_city +
+               distance_to_town +
+               water_point_population +
+               local_population_1km +
+               is_urban +
+               usage_capacity +
+               water_source_clean,
+               data = Osun_wp_sp,
+               #bw = bw.fixed,
+               bw = 2599.672,
+               family = "binomial",
+               kernel = "gaussian",
+               adaptive = FALSE,
+               longlat = FALSE)
+```
+
+For the Geographically Weighted Regression model, we only have AIC so we will compare based on AIC and see that there is a reduction in AIC value.
+
+```{r}
+gwlr.fixed
+```
+
+```{r}
+gwr.fixed <- as.data.frame(gwlr.fixed$SDF)
+```
+
+Next , we will label yhat values greater or equal to 0.5 into 1 and else 0. The result of the logic comparison operation will be saved into a field called most.
+
+```{r}
+gwr.fixed <- gwr.fixed %>%
+  mutate(most = ifelse(
+    gwr.fixed$yhat  >= 0.5, T, F))
+```
+
+```{r}
+gwr.fixed$y <- as.factor(gwr.fixed$y)
+gwr.fixed$most <- as.factor(gwr.fixed$most)
+
+CM <- confusionMatrix(data = gwr.fixed$most, reference = gwr.fixed$y)
+CM
+```
+
+```{r}
+Osun_wp_sf_selected <- Osun_wp_sf_clean %>%
+  select(c(ADM2_EN, ADM2_PCODE,
+           ADM1_EN, ADM1_PCODE,
+           status))
+gwr_sf.fixed <- cbind(Osun_wp_sf_selected, gwr.fixed)
+```
+
+```{r}
+tmap_mode("view")
+prob_T <- tm_shape(Osun) +
+  tm_polygons(alpha = 0.1) +
+tm_shape(gwr_sf.fixed) +
+  tm_dots(col = "yhat",
+          border.col = "gray60",
+          border.lwd = 1) +
+  tm_view(set.zoom.limits = c(9,14))
+
+prob_T
+```
+
+We obtain a better accuracy from the local model and thus when implementing strategies it should be strategised at a local level rather than a global level.
+
+The model can be further improved by calibrating the model with the 2 insignificant variables excluded.
+
+### 2.3.1 Improved Model
+
+We will exclude the 2 insignificant variables.
+
+```{r}
+gwlr.fixed.v2 <- ggwr.basic(status ~
+               distance_to_tertiary_road +
+               distance_to_city +
+               distance_to_town +
+               water_point_population +
+               local_population_1km +
+               is_urban +
+               usage_capacity +
+               water_source_clean,
+               data = Osun_wp_sp,
+               #bw = bw.fixed,
+               bw = 2599.672,
+               family = "binomial",
+               kernel = "gaussian",
+               adaptive = FALSE,
+               longlat = FALSE)
+```
+
+Extract the model results and save it into a dataframe
+
+```{r}
+gwr.fixed.v2 <- as.data.frame(gwlr.fixed.v2$SDF)
+```
+
+Next , we will label yhat values greater or equal to 0.5 into 1 and else 0. The result of the logic comparison operation will be saved into a field called most.
+
+```{r}
+gwr.fixed.v2 <- gwr.fixed.v2 %>%
+  mutate(most = ifelse(
+    gwr.fixed.v2$yhat  >= 0.5, T, F))
+```
+
+```{r}
+gwr.fixed.v2$y <- as.factor(gwr.fixed.v2$y)
+gwr.fixed.v2$most <- as.factor(gwr.fixed.v2$most)
+
+CM <- confusionMatrix(data = gwr.fixed.v2$most, reference = gwr.fixed.v2$y)
+CM
+```
